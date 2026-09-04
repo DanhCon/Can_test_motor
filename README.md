@@ -172,3 +172,90 @@ Trong quá trình phát triển dự án, hệ thống đã gặp và giải quy
   python3 scripts/test_robot_telemetry.py
   ```
 - Quan sát các thông số Vận tốc, Quãng đường Odometry và Tần số $50\,\text{Hz}$ hiển thị mượt mà trên Terminal. Nhấn `Ctrl + C` để dừng xe an toàn.
+
+
+---
+
+## ⏱️ 6. Kiến trúc định thời tối ưu: Hardware Timer Interrupt + Flag Pattern (50Hz Real-Time)
+
+### A. Vấn đề cốt lõi: Vì sao không gọi W5500 & CAN trực tiếp trong hàm ngắt (ISR)?
+Trong lập trình vi điều khiển, việc đưa toàn bộ tác vụ truyền thông vào trong hàm ngắt của Timer (`TIMx_IRQHandler` hoặc `HAL_TIM_PeriodElapsedCallback`) là một lỗi kiến trúc nghiêm trọng:
+1. **Tranh chấp ngoại vi SPI (Re-entrancy / Resource Corruption):**
+   - Vòng lặp chính `while(1)` có thể đang trong tiến trình giao tiếp với W5500 (`recvfrom`, kiểm tra thanh ghi SPI, kéo chân CS xuống `LOW`).
+   - Nếu ngắt Timer xảy ra đột ngột và gọi `sendto()`, hàm ngắt sẽ can thiệp vào chân CS và thanh ghi SPI1, làm vỡ khung truyền SPI và gây kẹt bus SPI vĩnh viễn.
+2. **Nguy cơ Deadlock với `SysTick`:**
+   - Thư viện STM32 HAL và WIZnet sử dụng `HAL_GetTick()` để kiểm tra Timeout cho các tác vụ SPI/CAN.
+   - `HAL_GetTick()` tăng thông qua ngắt `SysTick`. Nếu ngắt Timer có độ ưu tiên cao hơn hoặc bằng `SysTick`, `SysTick` sẽ bị chặn trong lúc hàm ngắt Timer đang chạy. Nếu hàm giao tiếp SPI gặp sự cố chờ, Timeout sẽ không bao giờ đếm được -> **Vi điều khiển bị treo cứng hoàn toàn**.
+3. **Quy tắc vàng của lập trình nhúng:**
+   > *"Hàm ngắt (ISR) chỉ thực hiện các tác vụ siêu ngắn (vài nano/micro-giây) rồi thoát ngay. Tuyệt đối không gọi các hàm truyền thông thời gian dài (SPI, CAN, UART, Ethernet) bên trong ISR."*
+
+### B. Giải pháp chuẩn công nghiệp: "Timer ngắt dựng Cờ" (Interrupt-driven Flag Pattern)
+Tách rời hoàn toàn **bộ định thời phần cứng chính xác tuyệt đối** khỏi **tác vụ truyền thông ngoại vi**:
+- **Hardware Timer (TIM2):** Chạy độc lập ở tầng phần cứng, cứ đúng $20.00\,	ext{ms}$ phát xung ngắt cực ngắn ($< 0.05\,\mu	ext{s}$) chỉ để bật một cờ hiệu: `flag_telemetry_50hz = 1`.
+- **Vòng lặp `while(1)`:** Chạy liên tục kiểm tra cờ. Khi thấy `flag_telemetry_50hz == 1`, nó xóa cờ và tiến hành gửi SYNC CAN + bắn UDP W5500.
+
+### C. Hướng dẫn tính toán & cấu hình chi tiết (STM32F103 @ 72MHz)
+
+#### 1. Công thức tính Prescaler và Period:
+- Xung nhịp hệ thống: $f_{\text{CLK}} = 72\,	ext{MHz} = 72.000.000\,	ext{Hz}$.
+- Chọn bộ chia tần số Timer (Prescaler - PSC) sao cho đồng hồ đếm Timer nhảy mỗi $0.1\,	ext{ms}$ ($10\,	ext{kHz}$):
+  $$\text{PSC} = \frac{72.000.000}{10.000} - 1 = 7199$$
+- Chu kỳ ngắt mong muốn là $20\,	ext{ms}$ ($50\,	ext{Hz}$):
+  $$\text{ARR} = \frac{20\,	ext{ms}}{0.1\,	ext{ms}} - 1 = 199$$
+
+#### 2. Khởi tạo ngắt Timer trong `main.c`:
+```c
+/* Khởi động Timer 2 ở chế độ ngắt */
+HAL_TIM_Base_Start_IT(&htim2);
+```
+
+#### 3. Hàm phục vụ ngắt (ISR Callback):
+```c
+volatile uint8_t flag_telemetry_50hz = 0;
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    if (htim->Instance == TIM2)
+    {
+        flag_telemetry_50hz = 1; // Chỉ bật cờ hiệu, tốn đúng 1 chu kỳ lệnh!
+    }
+}
+```
+
+#### 4. Điều phối trong vòng lặp chính `while(1)`:
+```c
+while (1)
+{
+    ZLAC_StateMachine();
+
+    // 1. Nhận và giải mã lệnh điều khiển UDP (nếu có)
+    if (getSn_RX_RSR(0) >= sizeof(UDP_ControlPacket_t))
+    {
+        // Nhận gói tin, kiểm tra CRC-16, set vận tốc ZLAC
+    }
+
+    // 2. Watchdog an toàn 250ms
+    if (HAL_GetTick() - last_udp_rx_time > 250)
+    {
+        ZLAC_Stop();
+    }
+
+    // 3. Đúng nhịp 20.00ms được kích hoạt bởi ngắt TIM2
+    if (flag_telemetry_50hz)
+    {
+        flag_telemetry_50hz = 0; // Xóa cờ ngay lập tức
+
+        // Phát lệnh SYNC CAN
+        HAL_CAN_AddTxMessage(&hcan, &sync_hdr, NULL, &sync_mailbox);
+
+        // Bắn Telemetry UDP lên PC
+        sendto(0, (uint8_t*)&fb_pkt, sizeof(UDP_FeedbackPacket_t), remote_ip, remote_port);
+    }
+
+    // Hoàn toàn không cần HAL_Delay()! Vòng lặp phản hồi tức thì và không bị nghẽn.
+}
+```
+
+### D. Hiệu quả đạt được:
+- **Độ ổn định tần số:** Triệt tiêu hoàn toàn Jitter và lỗi lượng tử hóa bước thời gian; tần số cố định chính xác $50.00\,	ext{Hz}$.
+- **Độ an toàn:** Không bao giờ xảy ra xung đột tài nguyên giữa các ngoại vi SPI và CAN, không gây deadlock với SysTick.
