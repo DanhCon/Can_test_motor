@@ -173,7 +173,74 @@ static void _RPDO1_Config(uint8_t id)
     _CAN_Send(0x600+id, 8, d);
     HAL_Delay(5);
 }
-
+/* ============================================================
+ * Cấu hình TPDO0: Driver tự động bắn VẬN TỐC (0x606C sub 03) về 0x181
+ * Chu kỳ: 50ms (Timer trigger)
+ * ============================================================ */
+static void _TPDO0_Config(uint8_t id)
+{
+    uint8_t d[8];
+    // 1. Xóa mapping cũ
+    d[0]=0x2F; d[1]=0x00; d[2]=0x1A; d[3]=0x00; d[4]=0x00; d[5]=0; d[6]=0; d[7]=0;
+    _CAN_Send(0x600 + id, 8, d);
+    HAL_Delay(5);
+    // 2. Map 0x606C sub 01 (Vel A - 32 bit)
+    d[0]=0x23; d[1]=0x00; d[2]=0x1A; d[3]=0x01;
+    d[4]=0x20; d[5]=0x01; d[6]=0x6C; d[7]=0x60;
+    _CAN_Send(0x600 + id, 8, d);
+    HAL_Delay(5);
+    // 3. Map 0x606C sub 02 (Vel B - 32 bit)
+    d[0]=0x23; d[1]=0x00; d[2]=0x1A; d[3]=0x02;
+    d[4]=0x20; d[5]=0x02; d[6]=0x6C; d[7]=0x60;
+    _CAN_Send(0x600 + id, 8, d);
+    HAL_Delay(5);
+    // 4. Cài chế độ Timer (0xFF)
+    d[0]=0x2F; d[1]=0x00; d[2]=0x18; d[3]=0x02; d[4]=0xFF; d[5]=0; d[6]=0; d[7]=0;
+    _CAN_Send(0x600 + id, 8, d);
+    HAL_Delay(5);
+    // 5. Chu kỳ gửi: 50ms (100 * 0.5ms)
+    d[0]=0x2B; d[1]=0x00; d[2]=0x18; d[3]=0x05; d[4]=0x28; d[5]=0x00; d[6]=0; d[7]=0;
+    _CAN_Send(0x600 + id, 8, d);
+    HAL_Delay(5);
+    // 6. Kích hoạt 2 object mapping
+    d[0]=0x2F; d[1]=0x00; d[2]=0x1A; d[3]=0x00; d[4]=0x02; d[5]=0; d[6]=0; d[7]=0;
+    _CAN_Send(0x600 + id, 8, d);
+    HAL_Delay(5);
+}
+/* ============================================================
+ * Cấu hình TPDO2: Driver tự động bắn VỊ TRÍ ENCODER (0x6064) về 0x381
+ * Chu kỳ: 50ms (Timer trigger)
+ * ============================================================ */
+static void _TPDO2_Config(uint8_t id)
+{
+    uint8_t d[8];
+    // 1. Xóa mapping cũ
+    d[0]=0x2F; d[1]=0x02; d[2]=0x1A; d[3]=0x00; d[4]=0x00; d[5]=0; d[6]=0; d[7]=0;
+    _CAN_Send(0x600 + id, 8, d);
+    HAL_Delay(5);
+    // 2. Map 0x6064 sub 01 (Pos A - 32 bit)
+    d[0]=0x23; d[1]=0x02; d[2]=0x1A; d[3]=0x01;
+    d[4]=0x20; d[5]=0x01; d[6]=0x64; d[7]=0x60;
+    _CAN_Send(0x600 + id, 8, d);
+    HAL_Delay(5);
+    // 3. Map 0x6064 sub 02 (Pos B - 32 bit)
+    d[0]=0x23; d[1]=0x02; d[2]=0x1A; d[3]=0x02;
+    d[4]=0x20; d[5]=0x02; d[6]=0x64; d[7]=0x60;
+    _CAN_Send(0x600 + id, 8, d);
+    HAL_Delay(5);
+    // 4. Cài chế độ Timer (0xFF)
+    d[0]=0x2F; d[1]=0x02; d[2]=0x18; d[3]=0x02; d[4]=0xFF; d[5]=0; d[6]=0; d[7]=0;
+    _CAN_Send(0x600 + id, 8, d);
+    HAL_Delay(5);
+    // 5. Chu kỳ gửi: 50ms (100 * 0.5ms)
+    d[0]=0x2B; d[1]=0x02; d[2]=0x18; d[3]=0x05; d[4]=0x28; d[5]=0x00; d[6]=0; d[7]=0;
+    _CAN_Send(0x600 + id, 8, d);
+    HAL_Delay(5);
+    // 6. Kích hoạt 2 object mapping
+    d[0]=0x2F; d[1]=0x02; d[2]=0x1A; d[3]=0x00; d[4]=0x02; d[5]=0; d[6]=0; d[7]=0;
+    _CAN_Send(0x600 + id, 8, d);
+    HAL_Delay(5);
+}
 /* ============================================================================
  * HÀM NỘI BỘ: Khởi tạo chế độ Profile Velocity
  * ============================================================================ */
@@ -279,6 +346,8 @@ void ZLAC_StateMachine(void)
         case ZLAC_CONFIG:
             _RPDO0_Config(id);            /* ~15ms */
             _RPDO1_Config(id);            /* ~15ms */
+				    _TPDO0_Config(id);            /* <--- [THÊM DÒNG NÀY] Bật tự động gửi Vận tốc */
+            _TPDO2_Config(id);            /* <--- [THÊM DÒNG NÀY] Bật tự động gửi Vị trí */
             _ProfileVelocity_Init(id);    /* ~25ms */
             NMT_Send(id, 0x01);           /* Start node */
             HAL_Delay(50);
@@ -350,12 +419,11 @@ void ZLAC_SetSpeed_raw(int16_t vel_a, int16_t vel_b)
 #if ZLAC_MOTOR_B_REVERSE
     vel_b = -vel_b;   /* Đảo dấu motor B nếu lắp ngược */
 #endif
-
+    // Dùng SDO chuẩn xác 100% của ZLAC
     SDO_Write(ZLAC_NODE_ID, 0x60FF, 0x01, (int32_t)vel_a, 4);
-    HAL_Delay(5); // Nghỉ 5ms để Motor tiêu hóa lệnh A
+    HAL_Delay(2); // Chỉ cần nghỉ nhẹ 2ms
     SDO_Write(ZLAC_NODE_ID, 0x60FF, 0x02, (int32_t)vel_b, 4);
 }
-
 /* ============================================================================
  * API CÔNG KHAI: ZLAC_SetSpeed_mps – Tốc độ robot (m/s, rad/s)
  * ============================================================================ */
@@ -382,8 +450,8 @@ void ZLAC_SetSpeed_mps(float v, float omega)
     float rpm_R = (vR / ZLAC_WHEEL_RADIUS_M) * (60.0f / (2.0f * M_PI));
 
     /* rpm → ZLAC unit (×10) */
-    int16_t zlac_L = (int16_t)(rpm_L * 10.0f);
-    int16_t zlac_R = (int16_t)(rpm_R * 10.0f);
+    int16_t zlac_L = (int16_t)roundf(rpm_L);
+    int16_t zlac_R = (int16_t)roundf(rpm_R);
 
     ZLAC_SetSpeed_raw(zlac_L, zlac_R);
 }
@@ -501,35 +569,33 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan_ptr)
 
     /*
      * Phân loại theo CAN ID (cho Node 1)
-     * TPDO range được auto-detect bằng mask:
-     *   TPDO0: 0x181, TPDO1: 0x281, TPDO2: 0x381, TPDO3: 0x481
+     * TPDO0: 0x181, TPDO1: 0x281, TPDO2: 0x381, TPDO3: 0x481
      */
 
-    if (id == (0x180 + ZLAC_NODE_ID))       /* TPDO0: Velocity Actual */
+    if (id == (0x180 + ZLAC_NODE_ID))       /* TPDO0 (0x181): VẬN TỐC THỰC TẾ A + B */
     {
         /*
-         * Cấu hình trong _RPDO1_Config (thực ra là TPDO config):
-         * Map 0x606C sub 0x03 → 4 bytes (int16 A + int16 B packed)
-         * rpm×10 đơn vị
+         * Map 0x606C sub 01 (Motor A) và sub 02 (Motor B)
+         * Mỗi motor chiếm 4 bytes (int32), đơn vị: 0.1 rpm
          */
-        zlac_fb.vel_a = RD_I16(rx_buf);
-        zlac_fb.vel_b = RD_I16(rx_buf + 2);
+        zlac_fb.vel_a = (int16_t)RD_I32(rx_buf);      /* Byte 0..3: Vận tốc Motor A */
+        zlac_fb.vel_b = (int16_t)RD_I32(rx_buf + 4);  /* Byte 4..7: Vận tốc Motor B */
     }
-    else if (id == (0x280 + ZLAC_NODE_ID))  /* TPDO1: Torque Actual */
+    else if (id == (0x280 + ZLAC_NODE_ID))  /* TPDO1 (0x281): Torque Actual */
     {
         /* int16 × moment value */
         (void)RD_I16(rx_buf);  /* Bỏ qua torque hoặc lưu nếu cần */
     }
-    else if (id == (0x380 + ZLAC_NODE_ID))  /* TPDO2: Position Actual A + B */
+    else if (id == (0x380 + ZLAC_NODE_ID))  /* TPDO2 (0x381): VỊ TRÍ ENCODER A + B */
     {
         /*
          * 8 bytes: Motor A (int32) + Motor B (int32)
          * Đơn vị: encoder counts
          */
-        zlac_fb.pos_a = RD_I32(rx_buf);
-        zlac_fb.pos_b = RD_I32(rx_buf + 4);
+        zlac_fb.pos_a = RD_I32(rx_buf);      /* Byte 0..3: Encoder Motor A */
+        zlac_fb.pos_b = RD_I32(rx_buf + 4);  /* Byte 4..7: Encoder Motor B */
     }
-    else if (id == (0x480 + ZLAC_NODE_ID))  /* TPDO3: Error Code */
+    else if (id == (0x480 + ZLAC_NODE_ID))  /* TPDO3 (0x481): Error Code */
     {
         zlac_fb.error_code = (uint16_t)(rx_buf[0] | ((uint16_t)rx_buf[1] << 8));
     }
@@ -545,7 +611,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan_ptr)
         zlac_fb.hb_tick = HAL_GetTick();
     }
     /* SDO Response (0x580 + Node_ID): Chỉ cần nếu muốn verify SDO */
-     else if (id == (0x580 + ZLAC_NODE_ID))  /* Thư phản hồi SDO (SDO Response) */
+    else if (id == (0x580 + ZLAC_NODE_ID))  /* Thư phản hồi SDO (SDO Response) */
     {
         uint16_t idx = (uint16_t)rx_buf[1] | ((uint16_t)rx_buf[2] << 8);
         uint8_t sub = rx_buf[3];

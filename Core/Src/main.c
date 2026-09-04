@@ -19,11 +19,16 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "can.h"
+#include "dma.h"
+#include "i2c.h"
+#include "spi.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "zlac_can.h"
+#include "wizchip_conf.h"
+#include "socket.h"
   uint8_t mode_return = 0;       // 0: Th? l?ng, 1: Ch? 1 giây, 2: Ch?y v?
   uint32_t stop_time = 0;        // Ð?ng h? b?m gi? 1 giây
   uint8_t is_motor_enabled = 1;  // Nh? tr?ng thái d? không b?t/t?t liên t?c
@@ -67,11 +72,104 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+uint16_t Calculate_CRC16(const uint8_t *data, uint16_t length)
+{
+    uint16_t crc = 0xFFFF;
+    for (uint16_t i = 0; i < length; i++)
+    {
+        crc ^= data[i];
+        for (uint8_t j = 0; j < 8; j++)
+        {
+            if (crc & 0x0001)
+                crc = (crc >> 1) ^ 0xA001; // Ða th?c Modbus
+            else
+                crc = crc >> 1;
+        }
+    }
+    return crc;
+}
+
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+void W5500_Select(void) {
+    HAL_GPIO_WritePin(W5500_CS_GPIO_Port, W5500_CS_Pin, GPIO_PIN_RESET);
+}
+// Hàm kéo chân CS lên HIGH d? b? ch?n W5500
+void W5500_Deselect(void) {
+    HAL_GPIO_WritePin(W5500_CS_GPIO_Port, W5500_CS_Pin, GPIO_PIN_SET);
+}
+// Hàm g?i 1 byte qua SPI
+void W5500_WriteByte(uint8_t byte) {
+    uint8_t rx_data;
+    // G?i di 1 byte, d?ng th?i nh?t byte rác ném vào rx_data d? ch?ng tràn OVR
+    HAL_SPI_TransmitReceive(&hspi1, &byte, &rx_data, 1, HAL_MAX_DELAY);
+}
+// Hàm d?c 1 byte qua SPI
+uint8_t W5500_ReadByte(void) {
+    uint8_t tx_data = 0xFF; // G?i 1 byte gi? (Dummy) d? t?o xung Clock
+    uint8_t rx_data = 0;
+    HAL_SPI_TransmitReceive(&hspi1, &tx_data, &rx_data, 1, HAL_MAX_DELAY);
+    return rx_data;
+}
+
+// Hàm d?c m?t m?ng d? li?u liên t?c (Burst Read)
+void W5500_ReadBurst(uint8_t* pBuf, uint16_t len) {
+    HAL_SPI_Receive(&hspi1, pBuf, len, 100);
+}
+// Hàm ghi m?t m?ng d? li?u liên t?c (Burst Write)
+void W5500_WriteBurst(uint8_t* pBuf, uint16_t len) {
+    HAL_SPI_Transmit(&hspi1, pBuf, len, 100);
+}
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+
   uint8_t is_running = 0;
   uint8_t btn_prev = GPIO_PIN_SET; // Bi?n nh? tr?ng thái nút nh?n (chân PA1)
 	uint8_t btn_now;
 
 /* USER CODE BEGIN 0 */
+volatile uint8_t w5500_version = 0;
+
+#pragma pack(push, 1)
+// C?u trúc gói tin nh?n t? máy tính (12 bytes)
+typedef struct {
+    uint8_t  header[2];   // Luôn là 0xAA, 0x55
+    float    v;           // V?n t?c dài (m/s)
+    float    omega;       // V?n t?c góc (rad/s)
+    uint16_t checksum;    // Ki?m tra tính toàn v?n
+} UDP_ControlPacket_t;
+// C?u trúc gói tin g?i v? máy tính (16 bytes)
+typedef struct {
+    uint8_t  header[2];   // Luôn là 0x55, 0xAA
+    int16_t  vel_a;       // T?c d? th?c motor A (rpm/10)
+    int16_t  vel_b;       // T?c d? th?c motor B (rpm/10)
+    int32_t  pos_a;       // Encoder motor A
+    int32_t  pos_b;       // Encoder motor B
+    uint16_t error_code;  // Mã l?i t? Driver
+} UDP_FeedbackPacket_t;
+#pragma pack(pop)
+uint8_t udp_rx_buf[64];
+uint8_t remote_ip[4] = {192, 168, 1, 10}; // IP máy tính Ubuntu c?a b?n
+uint16_t remote_port = 8888;
+uint32_t last_udp_rx_time = 0;
+uint32_t last_feedback_time = 0;
 
 /* USER CODE END 0 */
 
@@ -104,8 +202,33 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_CAN_Init();
+  MX_I2C1_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
+	  HAL_GPIO_WritePin(W5500_CS_GPIO_Port, W5500_CS_Pin, GPIO_PIN_SET);
+	  HAL_GPIO_WritePin(W5500_RST_GPIO_Port, W5500_RST_Pin, GPIO_PIN_RESET);
+  HAL_Delay(10);
+  HAL_GPIO_WritePin(W5500_RST_GPIO_Port, W5500_RST_Pin, GPIO_PIN_SET);
+  HAL_Delay(50); // Ch? W5500 kh?i d?ng xong
+  // 2. Ðang ký các hàm SPI v?a vi?t ? trên cho thu vi?n WIZnet
+  reg_wizchip_cs_cbfunc(W5500_Select, W5500_Deselect);
+  reg_wizchip_spi_cbfunc(W5500_ReadByte, W5500_WriteByte);
+	  reg_wizchip_spiburst_cbfunc(W5500_ReadBurst, W5500_WriteBurst);
+  // 3. C?u hình d?a ch? m?ng cho STM32
+  wiz_NetInfo net_info = {
+      .mac  = {0x00, 0x08, 0xDC, 0x55, 0x66, 0x77}, // Ð?a ch? MAC (t? b?a cung du?c)
+      .ip   = {192, 168, 1, 100},                   // Ð?a ch? IP c?a STM32
+      .sn   = {255, 255, 255, 0},                   // Subnet mask
+      .gw   = {192, 168, 1, 1},                     // Gateway (Router)
+      .dns  = {8, 8, 8, 8},                         // DNS Server
+      .dhcp = NETINFO_STATIC                        // Dùng IP tinh
+  };
+  wizchip_setnetinfo(&net_info);
+    w5500_version = getVERSIONR();
+  // 4. Kh?i t?o Socket UDP trên C?ng 8888 (Socket s? 0)
+  socket(0, Sn_MR_UDP, 8888, 0);
 
 	ZLAC_CAN_Init(); 
   // 1. Ðánh th?c m?ng
@@ -136,116 +259,66 @@ ZLAC_Odom_Reset();
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-    while (1)
+  while (1)
   {
-    ZLAC_StateMachine();
-    
-    // Ð?c Encoder liên t?c
-    SDO_Read_Request(1, 0x6064, 0x01);
-    HAL_Delay(5);
-    SDO_Read_Request(1, 0x6064, 0x02);
-    HAL_Delay(5);
+    /* USER CODE END WHILE */
 
-    ZLAC_Odom_Update(0.02f);
-		
-    if (ZLAC_IsReady()) 
+    /* USER CODE BEGIN 3 */
+		ZLAC_StateMachine();
+    // 2. Ki?m tra có gói tin UDP m?i d?n hay không
+    uint16_t rx_len = getSn_RX_RSR(0);
+    if (rx_len >= sizeof(UDP_ControlPacket_t))
     {
-        // 1. CH?T T?A Ð? G?C C?A T?NG BÁNH KHI M?I KH?I Ð?NG
-        if (has_anchor == 0) {
-            anchor_pos_a = zlac_fb.pos_a;
-            anchor_pos_b = zlac_fb.pos_b;
-            has_anchor = 1;
-        }
-
-        float van_toc_day = zlac_odom.v;
-        if (van_toc_day < 0.0f) van_toc_day = -van_toc_day;
-
-        // 2. TÍNH XEM T?NG BÁNH ÐÃ B? KÉO GIÃN RA BAO NHIÊU XUNG
-        int32_t err_a = anchor_pos_a - zlac_fb.pos_a;
-        int32_t err_b = anchor_pos_b - zlac_fb.pos_b;
-        
-        // Tính tr? tuy?t d?i d? check xem dã v? nhà chua
-        int32_t abs_err_a = (err_a > 0) ? err_a : -err_a;
-        int32_t abs_err_b = (err_b > 0) ? err_b : -err_b;
-
-        // ----------------------------------------------------
-        // TR?NG THÁI 0: XE NG? (NH? BÁNH CHO NGU?I Ð?Y T? DO)
-        // ----------------------------------------------------
-        if (mode_return == 0) 
+      UDP_ControlPacket_t cmd_pkt;
+      // Ð?c gói tin t? W5500
+      recvfrom(0, (uint8_t*)&cmd_pkt, sizeof(UDP_ControlPacket_t), remote_ip, &remote_port);
+      // Ki?m tra Header xem có dúng là 0xAA 0x55 không
+      if (cmd_pkt.header[0] == 0xAA && cmd_pkt.header[1] == 0x55)
+      {
+        // Tính CRC16 c?a 10 bytes d?u tiên
+        uint16_t expected_crc = Calculate_CRC16((uint8_t*)&cmd_pkt, 10);
+        // So kh?p v?i CRC máy tính g?i xu?ng
+        if (expected_crc == cmd_pkt.checksum)
         {
-            if (is_motor_enabled == 1) {
-                SDO_Write(ZLAC_NODE_ID, 0x6040, 0x00, 0x0006, 2); // C?t di?n
-                HAL_Delay(5);
-                is_motor_enabled = 0;
-            }
-
-            if (van_toc_day < 0.02f) 
-            {
-                // N?u b? d?y xa hon 1000 Xung (kho?ng vài cm) thì ch? 1 giây
-                if (abs_err_a > 1000 || abs_err_b > 1000) {
-                    mode_return = 1; 
-                    stop_time = HAL_GetTick(); 
-                }
-            }
-            else {
-                // Ðang b? d?y, liên t?c reset d?ng h?
-                stop_time = HAL_GetTick();
-            }
+          last_udp_rx_time = HAL_GetTick(); // Reset Watchdog
+          if (ZLAC_IsReady())
+          {
+            ZLAC_SetSpeed_mps(cmd_pkt.v, cmd_pkt.omega);
+          }
         }
-        // ----------------------------------------------------
-        // TR?NG THÁI 1: CH? 1 GIÂY Ð? CH?C CH?N ÐÃ BUÔNG TAY
-        // ----------------------------------------------------
-        else if (mode_return == 1) 
-        {
-            if (van_toc_day > 0.02f) {
-                mode_return = 0; 
-            }
-            else if (HAL_GetTick() - stop_time > 1000) 
-            {
-                if (is_motor_enabled == 0) {
-                    SDO_Write(ZLAC_NODE_ID, 0x6040, 0x00, 0x0007, 2); // Bom di?n
-                    HAL_Delay(10);
-                    SDO_Write(ZLAC_NODE_ID, 0x6040, 0x00, 0x000F, 2); // Kích ho?t ch?y
-                    HAL_Delay(10);
-                    is_motor_enabled = 1;
-                }
-                mode_return = 2; 
-            }
-        }
-        // ----------------------------------------------------
-        // TR?NG THÁI 2: ÐI?U KHI?N T?NG BÁNH LÙI V? ÐÚNG S? XUNG CU!
-        // ----------------------------------------------------
-        else if (mode_return == 2) 
-        {
-            // V? d?n nhà v?i sai s? siêu nh? (< 100 xung, siêu chính xác)
-            if (abs_err_a < 100 && abs_err_b < 100) 
-            {
-                ZLAC_Stop(); 
-                mode_return = 0; // T?t di?n di ng?
-            }
-            else 
-            {
-                // L?c kéo dàn h?i c?a "Dây chun": L?ch càng xa kéo v? càng m?nh
-                int16_t out_a = (int16_t)(err_a * 0.02f);
-                int16_t out_b = (int16_t)(err_b * 0.02f);
-                
-                // Hãm t?c d? l?i không cho xe gi?t b?n mình (Max 150 vòng/phút)
-                // S?a s? 150 thành 50 ho?c 80
-								if(out_a > 50) out_a = 50;     
-								if(out_a < -50) out_a = -50;
-								if(out_b > 50) out_b = 50;
-								if(out_b < -50) out_b = -50;
-                
-                // Truy?n tr?c ti?p l?nh d?c l?p vào t?ng bánh!
-                SDO_Write(ZLAC_NODE_ID, 0x60FF, 0x01, (int32_t)out_a, 4);
-                HAL_Delay(5);
-                SDO_Write(ZLAC_NODE_ID, 0x60FF, 0x02, (int32_t)out_b, 4);
-            }
-        }
+      }
     }
-    
-    HAL_Delay(20); 
-  
+    // 3. Co ch? WATCHDOG AN TOÀN: N?u m?t k?t n?i m?ng quá 250ms thì l?p t?c d?ng xe
+    if (HAL_GetTick() - last_udp_rx_time > 250)
+    {
+      ZLAC_Stop();
+    }
+    // 4. G?i Telemetry / Ph?n h?i v? l?i máy tính d?nh k? 50ms (20Hz)
+    if (HAL_GetTick() - last_feedback_time >= 20)
+    {
+      last_feedback_time = HAL_GetTick();
+			 // ---- [THÊM M?I] B?N L?NH SYNC (0x080) Ð? ÐÒI D? LI?U T? ZLAC ----
+      extern CAN_HandleTypeDef hcan; // G?i bi?n hcan t? main
+      CAN_TxHeaderTypeDef sync_hdr;
+      uint32_t sync_mailbox;
+      sync_hdr.StdId = 0x080;        // ID Chu?n c?a l?nh SYNC trong CANopen
+      sync_hdr.ExtId = 0;
+      sync_hdr.IDE = CAN_ID_STD;
+      sync_hdr.RTR = CAN_RTR_DATA;
+      sync_hdr.DLC = 0;              // Gói SYNC không mang data (Ð? dài = 0 byte)
+      HAL_CAN_AddTxMessage(&hcan, &sync_hdr, NULL, &sync_mailbox);
+      // ----------------------------------------------------------------
+      UDP_FeedbackPacket_t fb_pkt;
+      fb_pkt.header[0]   = 0x55;
+      fb_pkt.header[1]   = 0xAA;
+      fb_pkt.vel_a       = zlac_fb.vel_a;
+      fb_pkt.vel_b       = zlac_fb.vel_b;
+      fb_pkt.pos_a       = zlac_fb.pos_a;
+      fb_pkt.pos_b       = zlac_fb.pos_b;
+      fb_pkt.error_code  = zlac_fb.error_code;
+      sendto(0, (uint8_t*)&fb_pkt, sizeof(UDP_FeedbackPacket_t), remote_ip, remote_port);
+    }
+    HAL_Delay(1); // Nhuong chu ky CPU
   }
   /* USER CODE END 3 */
 }
@@ -262,11 +335,12 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -282,7 +356,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -323,3 +397,4 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
+

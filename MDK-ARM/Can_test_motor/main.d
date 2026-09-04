@@ -18,5 +18,11 @@ can_test_motor/main.o: ..\Core\Src\main.c ..\Core\Inc\main.h \
   ..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_cortex.h \
   ..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_flash.h \
   ..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_flash_ex.h \
+  ..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_i2c.h \
   ..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_pwr.h \
-  ..\Core\Inc\can.h ..\Core\Inc\gpio.h ..\Core\Inc\zlac_can.h
+  ..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_spi.h \
+  ..\Core\Inc\can.h ..\Core\Inc\dma.h ..\Core\Inc\i2c.h \
+  ..\Core\Inc\spi.h ..\Core\Inc\gpio.h ..\Core\Inc\zlac_can.h \
+  ..\Drivers\ioLibrary_Driver\Ethernet\wizchip_conf.h \
+  ..\Drivers\ioLibrary_Driver\Ethernet\W5500\w5500.h \
+  ..\Drivers\ioLibrary_Driver\Ethernet\socket.h
