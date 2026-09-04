@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tài Liệu Toàn Tập: Hardware Gateway STM32F103 + W5500 Ethernet + CANopen ZLAC8015D</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+    window.MathJax = {
+        tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']],
+            tags: 'ams'
+        },
+        chtml: { scale: 1 }
+    };
+    </script>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --accent-light: #3b82f6;
+            --bg: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #475569;
+            --quiz-bg: #f0f9ff;
+            --quiz-border: #bae6fd;
+            --answer-bg: #f0fdf4;
+            --answer-border: #86efac;
+            --warning-bg: #fffbeb;
+            --warning-border: #fde68a;
+            --code-bg: #0f172a;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text);
+            background: var(--bg);
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 40px 25px;
+        }
+
+        /* ===== COVER PAGE ===== */
+        .cover-page {
+            text-align: center;
+            padding: 55px 25px;
+            border-bottom: 3px solid var(--accent);
+            margin-bottom: 45px;
+            background: #f8fafc;
+            border-radius: 12px;
+        }
+        .cover-page h1 {
+            font-size: 2.2em;
+            color: var(--primary);
+            margin-bottom: 15px;
+            line-height: 1.3;
+            border: none;
+            padding: 0;
+        }
+        .cover-page .subtitle {
+            font-size: 1.25em;
+            color: var(--accent);
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        .cover-page .tagline {
+            font-size: 1.05em;
+            color: var(--text-secondary);
+            font-style: italic;
+            margin-bottom: 25px;
+            max-width: 820px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .cover-page .meta {
+            font-size: 0.95em;
+            color: var(--text-secondary);
+        }
+
+        /* ===== HEADINGS ===== */
+        h1 { font-size: 1.8em; color: var(--primary); margin: 45px 0 20px; border-bottom: 2px solid var(--accent); padding-bottom: 8px; }
+        h2 { font-size: 1.35em; color: var(--accent); margin: 35px 0 15px; }
+        h3 { font-size: 1.15em; color: var(--primary); margin: 25px 0 12px; }
+        h4 { font-size: 1.05em; color: var(--text); margin: 18px 0 8px; }
+
+        .part-header {
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            color: white;
+            padding: 26px 32px;
+            border-radius: 10px;
+            margin: 50px 0 25px;
+            box-shadow: var(--shadow);
+        }
+        .part-header h1 { color: white; border: none; margin: 0; font-size: 1.65em; padding: 0; }
+        .part-header p { color: #dbeafe; margin-top: 8px; font-size: 1.05em; }
+
+        .part-header-special {
+            background: linear-gradient(135deg, #065f46, #059669);
+            color: white;
+            padding: 26px 32px;
+            border-radius: 10px;
+            margin: 50px 0 25px;
+            box-shadow: var(--shadow);
+        }
+        .part-header-special h1 { color: white; border: none; margin: 0; font-size: 1.65em; padding: 0; }
+        .part-header-special p { color: #d1fae5; margin-top: 8px; font-size: 1.05em; }
+
+        /* ===== CONTENT ===== */
+        p { margin: 12px 0; text-align: justify; }
+        ul, ol { margin: 10px 0 15px 25px; }
+        li { margin: 6px 0; }
+
+        strong { color: #0f172a; font-weight: 600; }
+
+        .highlight {
+            background: #fef08a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        blockquote {
+            border-left: 4px solid var(--accent);
+            background: #f8fafc;
+            padding: 15px 20px;
+            margin: 20px 0;
+            font-style: italic;
+            color: var(--text-secondary);
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* ===== DEFINITION / BOXES ===== */
+        .definition, .theorem, .important-note, .example-box, .analogy-box, .skill-box {
+            padding: 18px 22px;
+            border-radius: 8px;
+            margin: 22px 0;
+            border-left: 5px solid;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .definition { background: #eff6ff; border-color: #3b82f6; }
+        .definition .box-title { color: #1d4ed8; }
+        
+        .theorem { background: #faf5ff; border-color: #a855f7; }
+        .theorem .box-title { color: #7e22ce; }
+        
+        .important-note { background: var(--warning-bg); border-color: #f59e0b; }
+        .important-note .box-title { color: #b45309; }
+        
+        .example-box { background: #f0fdf4; border-color: #22c55e; }
+        .example-box .box-title { color: #15803d; }
+
+        .analogy-box { background: #fff7ed; border-color: #ea580c; }
+        .analogy-box .box-title { color: #c2410c; }
+
+        .skill-box { background: #fdf2f8; border-color: #db2777; }
+        .skill-box .box-title { color: #9d174d; }
+
+        .box-title {
+            font-weight: 700;
+            font-size: 1.08em;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        /* ===== STEP CARDS ===== */
+        .step-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid var(--accent);
+            border-radius: 6px;
+            padding: 16px 20px;
+            margin: 14px 0;
+        }
+        .step-number {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 700;
+            margin-right: 8px;
+        }
+
+        /* ===== QUIZ ===== */
+        .quiz-section {
+            background: var(--quiz-bg);
+            border: 1px solid var(--quiz-border);
+            border-radius: 10px;
+            padding: 22px 26px;
+            margin: 30px 0;
+        }
+        .quiz-section h3 {
+            color: #0369a1;
+            margin-top: 0;
+            font-size: 1.15em;
+        }
+        .quiz-question {
+            margin: 15px 0 8px;
+        }
+        .quiz-question strong {
+            color: #0284c7;
+        }
+
+        .answer-section {
+            background: var(--answer-bg);
+            border: 1px solid var(--answer-border);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 10px 0 20px;
+        }
+        .answer-section .box-title {
+            color: #16a34a;
+        }
+
+        /* ===== TABLE ===== */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.95em;
+        }
+        th, td {
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            text-align: left;
+        }
+        th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+        tr:nth-child(even) { background: #f8fafc; }
+        tr:hover { background: #f1f5f9; }
+
+        /* ===== CODE ===== */
+        pre {
+            background: var(--code-bg);
+            color: #f8fafc;
+            padding: 16px 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: "Fira Code", Consolas, Monaco, "Courier New", monospace;
+            font-size: 0.88em;
+            line-height: 1.6;
+            margin: 18px 0;
+        }
+        code {
+            font-family: "Fira Code", Consolas, Monaco, "Courier New", monospace;
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #b91c1c;
+        }
+        pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+
+        /* ===== TOC ===== */
+        .toc {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 25px 30px;
+            margin: 30px 0;
+        }
+        .toc h2 { margin-top: 0; color: var(--primary); font-size: 1.4em; }
+        .toc ul { list-style: none; margin-left: 0; }
+        .toc > ul > li {
+            margin: 10px 0;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        .toc > ul > li > ul > li {
+            font-weight: 400;
+            color: var(--text);
+            margin: 5px 0;
+            padding-left: 20px;
+        }
+        .toc a { color: inherit; text-decoration: none; }
+        .toc a:hover { color: var(--accent); text-decoration: underline; }
+
+        .diagram-box {
+            background: #0f172a;
+            color: #38bdf8;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- COVER PAGE -->
+<div class="cover-page">
+    <h1>TÀI LIỆU HỌC TẬP TOÀN TẬP VỀ DỰ ÁN</h1>
+    <div class="subtitle">Real-Time Hardware Gateway: STM32F103 + Ethernet W5500 + CANopen ZLAC8015D Dual Motor</div>
+    <div class="tagline">
+        Cẩm nang làm chủ toàn diện mã nguồn dự án hiện tại: Nắm vững bản chất phần cứng, luồng đi của từng byte dữ liệu, giải mã toàn bộ code C & Python, hiểu rõ các lỗi thực tế và đúc kết kỹ năng kỹ sư nhúng chuyên nghiệp.
+    </div>
+    <div class="meta">
+        <strong>Dự án:</strong> <code>Can_test_motor</code> (Mạch Gateway Điều Khiển Động Cơ Robot Vi Sai)<br>
+        <strong>Mục tiêu:</strong> Hiểu thấu đáo 100% project đang làm - Tự tin đọc hiểu code mà không bị ngộp - Tự phát triển hệ thống tiếp theo
+    </div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+    <h2>📑 Mục Lục Chi Tiết</h2>
+    <ul>
+        <li><a href="#part0">PHẦN 0: BẢN CHẤT DỰ ÁN - TẠI SAO PHẢI CÓ PROJECT NÀY?</a>
+            <ul>
+                <li><a href="#s0.1">0.1 Vấn đề thực tế khi chế tạo Robot / Xe tự hành (AGV/AMR)</a></li>
+                <li><a href="#s0.2">0.2 Mô hình Kiến trúc Tách Não (Split-Brain Architecture)</a></li>
+                <li><a href="#s0.3">0.3 Sơ đồ khối tổng thể kết nối phần cứng</a></li>
+            </ul>
+        </li>
+        <li><a href="#part1">PHẦN 1: HÀNH TRÌNH CỦA DỮ LIỆU TỪ A - Z (DATA FLOW PIPELINE)</a>
+            <ul>
+                <li><a href="#s1.1">1.1 Chiều Xuống (Downlink): Từ phím bấm trên Ubuntu đến vòng quay Motor</a></li>
+                <li><a href="#s1.2">1.2 Chiều Lên (Uplink): Từ đĩa quang Encoder về màn hình hiển thị PC</a></li>
+                <li><a href="#s1.3">1.3 Cấu trúc định dạng gói tin nhị phân (UDP Binary Packet Spec)</a></li>
+                <li><a href="#s1.4">1.4 Bảng quy đổi đơn vị đo lường (m/s, rad/s, RPM, xung/vòng)</a></li>
+            </ul>
+        </li>
+        <li><a href="#part2">PHẦN 2: TẦNG TRUYỀN THÔNG MẠNG ETHERNET W5500 QUA SPI</a>
+            <ul>
+                <li><a href="#s2.1">2.1 Vì sao chọn Ethernet UDP mà không dùng UART / USB hay TCP?</a></li>
+                <li><a href="#s2.2">2.2 Bản chất chip W5500: Hardwired TCP/IP Stack & Bộ đệm RAM 16KB</a></li>
+                <li><a href="#s2.3">2.3 Giao tiếp SPI1 STM32 ↔ W5500: Bài học sườn xung CS và cờ Overrun (OVR)</a></li>
+                <li><a href="#s2.4">2.4 Cơ chế bảo toàn dữ liệu: Thuật toán CRC-16 Modbus (Đa thức 0xA001)</a></li>
+                <li><a href="#s2.5">2.5 Cơ chế Watchdog an toàn mạng 250ms (Fail-Safe)</a></li>
+            </ul>
+        </li>
+        <li><a href="#part3">PHẦN 3: TẦNG BUS CÔNG NGHIỆP CAN BUS & GIAO THỨC CANOPEN ZLAC8015D</a>
+            <ul>
+                <li><a href="#s3.1">3.1 Tầng vật lý CAN: Tín hiệu vi sai, Chống nhiễu & Trở đầu cuối 120Ω</a></li>
+                <li><a href="#s3.2">3.2 Cấu trúc khung CAN 2.0B tiêu chuẩn (COB-ID 11-bit)</a></li>
+                <li><a href="#s3.3">3.3 Bộ tứ CANopen: NMT (Đánh thức), SDO (Cài đặt), PDO (Thời gian thực), SYNC (Đồng bộ)</a></li>
+                <li><a href="#s3.4">3.4 Từ điển đối tượng (Object Dictionary) của Driver ZLAC8015D</a></li>
+                <li><a href="#s3.5">3.5 Giải mã TPDO Mapping: Vì sao trước đây Driver ZLAC hoàn toàn im lặng?</a></li>
+            </ul>
+        </li>
+        <li><a href="#part4">PHẦN 4: TOÁN HỌC ĐỘNG HỌC VI SAI TRONG PROJECT (KINEMATICS)</a>
+            <ul>
+                <li><a href="#s4.1">4.1 Động học thuận: Từ tốc độ 2 bánh suy ra vận tốc xe $(v, \omega)$</a></li>
+                <li><a href="#s4.2">4.2 Động học nghịch: Biến đổi $(v, \omega)$ thành RPM đặt cho Driver</a></li>
+                <li><a href="#s4.3">4.3 Bài học lỗi x10 tốc độ: Đơn vị thanh ghi 0x60FF là 1 RPM</a></li>
+                <li><a href="#s4.4">4.4 Tích phân vị trí (Dead Reckoning Odometry): Tính x, y, quãng đường từ xung Encoder</a></li>
+            </ul>
+        </li>
+        <li><a href="#part5">PHẦN 5: ĐỊNH THỜI THỜI GIAN THỰC (HARD REAL-TIME & 50HZ TIMING)</a>
+            <ul>
+                <li><a href="#s5.1">5.1 Mổ xẻ hiện tượng tụt tần số 47.4Hz do lỗi Lượng tử hóa bước thời gian</a></li>
+                <li><a href="#s5.2">5.2 Vì sao vi điều khiển bare-metal không cần `HAL_Delay` để "nhường CPU"?</a></li>
+                <li><a href="#s5.3">5.3 Cạm bẫy: Vì sao cấm gọi hàm truyền thông W5500 & CAN trong ngắt Timer?</a></li>
+                <li><a href="#s5.4">5.4 Kiến trúc tối ưu: Hardware Timer Interrupt (TIM2) + Flag Pattern</a></li>
+            </ul>
+        </li>
+        <li><a href="#part6">PHẦN 6: HƯỚNG DẪN BÓC TÁCH TỪNG DÒNG CODE TRONG PROJECT (CODE WALKTHROUGH)</a>
+            <ul>
+                <li><a href="#s6.1">6.1 Mổ xẻ file `Core/Src/main.c`: Khởi tạo W5500, Vòng lặp điều phối, UDP, Watchdog</a></li>
+                <li><a href="#s6.2">6.2 Mổ xẻ file `Core/Src/zlac_can.c`: Máy trạng thái FSM, Hàm cấu hình TPDO, Hàm ngắt CAN</a></li>
+                <li><a href="#s6.3">6.3 Mổ xẻ file `scripts/test_robot_telemetry.py`: Vòng lặp non-blocking 50Hz, struct pack, CRC</a></li>
+            </ul>
+        </li>
+        <li><a href="#part7">PHẦN 7: TỔNG HỢP CÁC LỖI THỰC TẾ ĐÃ GẶP & CÁCH XỬ LÝ (LESSONS LEARNED)</a>
+            <ul>
+                <li><a href="#err1">Lỗi 1: W5500 không Ping được (Sườn xung CS và cờ OVR)</a></li>
+                <li><a href="#err2">Lỗi 2: Biên dịch thiếu hàm WIZnet (Cấu hình chip W5500)</a></li>
+                <li><a href="#err3">Lỗi 3: Xe chạy nhưng Feedback vận tốc và encoder luôn bằng 0 (Thiếu TPDO Mapping)</a></li>
+                <li><a href="#err4">Lỗi 4: Động cơ quay nhanh gấp 10 lần vận tốc đặt (Sai đơn vị 0x60FF)</a></li>
+                <li><a href="#err5">Lỗi 5: Xe đứng im khi thêm CRC (Không đồng bộ thuật toán CRC-16 Modbus)</a></li>
+                <li><a href="#err6">Lỗi 6: Tần số nhận bị tụt về 47.4Hz (HAL_Delay 5ms kẹp chu kỳ)</a></li>
+            </ul>
+        </li>
+        <li><a href="#part8">PHẦN 8: BỘ KỸ NĂNG NGHỀ NGHIỆP TÁI SỬ DỤNG CHO MỌI DỰ ÁN NHÚNG TIẾP THEO</a>
+            <ul>
+                <li><a href="#sk1">Kỹ năng 1: Thiết kế Giao thức Nhị phân & Bẫy Căn chỉnh bộ nhớ (Struct Padding)</a></li>
+                <li><a href="#sk2">Kỹ năng 2: Máy Trạng Thái Phi Chặn (Non-Blocking FSM Pattern)</a></li>
+                <li><a href="#sk3">Kỹ năng 3: Tiêu Chuẩn Quốc Tế CiA 402 Cho Mọi Loại Servo Công Nghiệp</a></li>
+                <li><a href="#sk4">Kỹ năng 4: Chiến Lược An Toàn Đa Tầng (Defense-in-Depth Safety)</a></li>
+                <li><a href="#sk5">Kỹ năng 5: Quy trình Bắt bệnh & Debug Bus Truyền thông (Troubleshooting Toolkit)</a></li>
+            </ul>
+        </li>
+        <li><a href="#part9">PHẦN 9: BỘ CÂU HỎI TRẮC NGHIỆM TỰ ĐÁNH GIÁ NĂNG LỰC (QUIZ)</a></li>
+    </ul>
+</div>
+
+<!-- =========================================================== -->
+<!-- PHẦN 0: BẢN CHẤT DỰ ÁN                                     -->
+<!-- =========================================================== -->
+<div class="part-header" id="part0">
+    <h1>PHẦN 0: BẢN CHẤT DỰ ÁN - TẠI SAO PHẢI CÓ PROJECT NÀY?</h1>
+    <p>Hiểu lý do vì sao hệ thống này được sinh ra và đóng vai trò gì trong một Robot tự hành</p>
+</div>
+
+<h2 id="s0.1">0.1 Vấn đề thực tế khi chế tạo Robot / Xe tự hành (AGV/AMR)</h2>
+
+<p>
+    Khi bạn muốn chế tạo một con robot tự hành (AGV vận chuyển hàng trong nhà máy, AMR tự tránh vật cản, xe cắt cỏ tự động), hệ thống luôn bao gồm 2 thế giới tách biệt:
+</p>
+<ul>
+    <li><strong>Thế giới phần mềm cấp cao (High-level):</strong> Máy tính Ubuntu chạy ROS 2 (Robot Operating System), xử lý bản đồ Lidar (SLAM), nhận diện camera AI, tìm đường đi. Thế giới này xuất ra lệnh vận tốc: <em>"Robot hãy đi thẳng với tốc độ $0.5	ext{ m/s}$ và bẻ lái $0.1	ext{ rad/s}$"</em>.</li>
+    <li><strong>Thế giới phần cứng công suất lớn (Low-level):</strong> Hai bánh xe to gắn động cơ BLDC không chổi than, được điều khiển bởi một bộ Driver công nghiệp công suất cao mang tên <strong>ZLAC8015D</strong>. Driver này nhận lệnh qua mạng <strong>CAN Bus công nghiệp</strong>.</li>
+</ul>
+
+<div class="analogy-box">
+    <span class="box-title">❓ VẤN ĐỀ ĐẶT RA:</span>
+    <p>
+        Máy tính IPC / Laptop của bạn <strong>không có cổng CAN Bus</strong>. Nếu dùng mạch chuyển USB-to-UART hoặc USB-to-CAN rẻ tiền:
+        <br>1. Đầu cắm USB rất dễ lỏng khi xe chạy rung lắc trên sàn gồ ghề $ightarrow$ Xe mất kết nối giữa đường.
+        <br>2. Cáp USB bị nhiễu điện từ trường (EMI) từ tia lửa điện và cuộn dây động cơ công suất lớn làm treo cổng COM ảo.
+        <br>3. Hệ điều hành Linux không có tính thời gian thực cứng (Hard Real-Time), có thể bị giật lag $50 \sim 100	ext{ ms}$.
+    </p>
+</div>
+
+<h2 id="s0.2">0.2 Mô hình Kiến trúc Tách Não (Split-Brain Architecture)</h2>
+
+<p>
+    Để giải quyết triệt để vấn đề trên theo đúng chuẩn công nghiệp, chúng ta tạo ra dự án này: <strong>Mạch Cầu Nối Phần Cứng (Hardware Gateway)</strong> sử dụng vi điều khiển <strong>STM32F103C8T6</strong> kết hợp với module mạng Ethernet công nghiệp <strong>W5500</strong>:
+</p>
+
+<div class="diagram-box">
+[ MÁY TÍNH UBUNTU / ROS 2 ] 
+              │
+              ▼ (Cáp mạng Ethernet Cat5e/6: Cách ly biến áp, chống nhiễu tuyệt đối, RTT &lt; 0.3ms)
+[ MODULE ETHERNET W5500   ]
+              │
+              ▼ (Giao tiếp SPI1: 4.5 Mbps, Full-Duplex)
+[ VI ĐIỀU KHIỂN STM32F103 ] ➔ ĐÓNG VAI TRÒ "CẦU NỐI TRUNG TÂM" (GATEWAY)
+              │  ├─ Kiểm tra toàn vẹn gói tin: CRC-16 Modbus
+              │  ├─ Watchdog an toàn: Tự ngắt điện nếu mất cáp LAN quá 250ms
+              │  ├─ Động học vi sai: Tính toán tốc độ vòng/phút (RPM) từng bánh
+              │  └─ Định thời chuẩn nhịp 50.00 Hz bằng Hardware Timer
+              ▼ (Mạng CAN Bus 2.0B: 500 kbps, giao thức CANopen CiA 402)
+[ DRIVER SERVO ZLAC8015D  ]
+              │
+        ┌─────┴─────┐
+        ▼           ▼
+  [ Bánh Trái ] [ Bánh Phải ]
+</div>
+
+<h2 id="s0.3">0.3 Sơ đồ kết nối chân phần cứng (Pinout) trong Project</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Module</th>
+            <th>Chân trên Module</th>
+            <th>Chân trên STM32F103</th>
+            <th>Chức năng ngoại vi</th>
+            <th>Ghi chú quan trọng</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td rowspan="5"><strong>W5500 Ethernet</strong></td>
+            <td>SCK</td>
+            <td><strong>PA5</strong></td>
+            <td>SPI1 SCK (Clock 4.5MHz)</td>
+            <td>Master Clock</td>
+        </tr>
+        <tr>
+            <td>MISO</td>
+            <td><strong>PA6</strong></td>
+            <td>SPI1 MISO (Master In)</td>
+            <td>Dữ liệu W5500 gửi về STM32</td>
+        </tr>
+        <tr>
+            <td>MOSI</td>
+            <td><strong>PA7</strong></td>
+            <td>SPI1 MOSI (Master Out)</td>
+            <td>Dữ liệu STM32 ghi sang W5500</td>
+        </tr>
+        <tr>
+            <td>CS (SCSn)</td>
+            <td><strong>PA4</strong></td>
+            <td>GPIO Output</td>
+            <td>Chip Select (Kéo HIGH trước khi reset)</td>
+        </tr>
+        <tr>
+            <td>RST</td>
+            <td><strong>PA3</strong></td>
+            <td>GPIO Output</td>
+            <td>Hardware Reset (Xung LOW 10ms)</td>
+        </tr>
+        <tr>
+            <td rowspan="2"><strong>CAN Transceiver (VP230 / TJA1050)</strong></td>
+            <td>TXD</td>
+            <td><strong>PA12</strong></td>
+            <td>CAN1 TX</td>
+            <td>Bắn frame ra mạng CAN @ 500kbps</td>
+        </tr>
+        <tr>
+            <td>RXD</td>
+            <td><strong>PA11</strong></td>
+            <td>CAN1 RX</td>
+            <td>Hứng frame từ mạng CAN vào ngắt</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- =========================================================== -->
+<!-- PHẦN 1: DATA FLOW PIPELINE                                 -->
+<!-- =========================================================== -->
+<div class="part-header" id="part1">
+    <h1>PHẦN 1: HÀNH TRÌNH CỦA DỮ LIỆU TỪ A - Z (DATA FLOW PIPELINE)</h1>
+    <p>Theo dõi từng byte dữ liệu đi qua từng con chip trong mạch</p>
+</div>
+
+<h2 id="s1.1">1.1 Chiều Xuống (Downlink): Từ phím bấm trên Ubuntu đến vòng quay Motor</h2>
+
+<div class="step-card">
+    <span class="step-number">Chặng 1</span> <strong>Tại Python Script (`test_robot_telemetry.py`):</strong>
+    Bạn đặt vận tốc mong muốn: $v = 0.5	ext{ m/s}$, $\omega = 0.0	ext{ rad/s}$.
+    Hàm <code>struct.pack('&lt;BBff', 0xAA, 0x55, v, omega)</code> đóng gói 10 bytes đầu tiên.
+    Hàm <code>calculate_crc16()</code> tính ra mã kiểm tra 16-bit (2 bytes) và ghép vào đuôi, tạo thành gói tin nhị phân chuẩn <strong>12 bytes</strong>.
+    Gói tin được bắn ra Socket UDP tới địa chỉ IP `192.168.1.100`, Port `8888`.
+</div>
+
+<div class="step-card">
+    <span class="step-number">Chặng 2</span> <strong>Tại biến áp xung và chip W5500:</strong>
+    Xung điện cao tần chạy qua biến áp cách ly đi vào W5500. Phần cứng Silicon của W5500 tự động xác minh địa chỉ MAC, giải mã IP header, kiểm tra UDP checksum. Nếu đúng cho socket 0, W5500 ghi 12 bytes vào bộ nhớ đệm RAM nội bộ và tăng thanh ghi kích thước nhận <code>getSn_RX_RSR(0)</code>.
+</div>
+
+<div class="step-card">
+    <span class="step-number">Chặng 3</span> <strong>Tại vòng lặp `while(1)` của STM32 (`main.c`):</strong>
+    STM32 gọi hàm <code>getSn_RX_RSR(0)</code> qua SPI. Thấy kích thước $\ge 12$, STM32 gọi <code>recvfrom(...)</code> kéo 12 bytes về mảng cấu trúc <code>cmd_pkt</code> trong RAM của STM32.
+    STM32 tính lại CRC trên 10 bytes đầu. Khi CRC trùng khớp:
+    <br>• Cập nhật đồng hồ: <code>last_udp_rx_time = HAL_GetTick()</code> (Nuôi Watchdog an toàn).
+    <br>• Gọi hàm <code>ZLAC_SetSpeed_mps(cmd_pkt.v, cmd_pkt.omega)</code>.
+</div>
+
+<div class="step-card">
+    <span class="step-number">Chặng 4</span> <strong>Tại module Động học & CANopen (`zlac_can.c`):</strong>
+    Hàm giải phương trình động học vi sai, tính ra tốc độ vòng/phút của bánh trái và bánh phải:
+    <code>int16_t zlac_L = roundf(rpm_L)</code> và <code>zlac_R = roundf(rpm_R)</code>.
+    Dữ liệu được nạp vào 8 bytes của khung CAN RPDO0 (COB-ID `0x201`):
+    <br>• Byte 0..3: Vận tốc bánh Trái (kiểu `int32_t`).
+    <br>• Byte 4..7: Vận tốc bánh Phải (kiểu `int32_t`).
+    Hàm <code>HAL_CAN_AddTxMessage()</code> đẩy frame ra chân PA12 với tốc độ 500 kbps.
+</div>
+
+<div class="step-card">
+    <span class="step-number">Chặng 5</span> <strong>Tại Driver ZLAC8015D:</strong>
+    Bộ thu CAN của ZLAC nhận frame `0x201`, đưa giá trị vào bộ điều khiển PID vận tốc vòng kín (tần số 10kHz). Mạch nghịch lưu cầu H MOSFET đóng ngắt xung điện áp 24V-48V, động cơ quay với vận tốc chính xác!
+</div>
+
+<h2 id="s1.2">1.2 Chiều Lên (Uplink): Từ đĩa quang Encoder về màn hình hiển thị PC</h2>
+
+<div class="step-card">
+    <span class="step-number">Chặng 1</span> <strong>Bánh xe quay sinh xung Encoder:</strong>
+    Cứ 1 vòng quay, đĩa mã hóa sinh ra 1024 chu kỳ $ightarrow$ Bộ giải mã đếm 4 cạnh của ZLAC ghi nhận <strong>4096 xung/vòng</strong>. Vận tốc góc thực tế được đo đạc liên tục.
+</div>
+
+<div class="step-card">
+    <span class="step-number">Chặng 2</span> <strong>ZLAC phát gói dữ liệu TPDO qua CAN:</strong>
+    Khi nhận xung kích hoạt thời gian $20	ext{ ms}$ (hoặc gói SYNC `0x080` từ STM32), ZLAC phát 2 frame CAN:
+    <br>• Frame `0x181` (TPDO0): Mang vận tốc thực Motor 1 & Motor 2 (đơn vị $0.1	ext{ RPM}$).
+    <br>• Frame `0x381` (TPDO2): Mang số xung tích lũy Encoder Motor 1 & Motor 2 (kiểu số nguyên 32-bit có dấu).
+</div>
+
+<div class="step-card">
+    <span class="step-number">Chặng 3</span> <strong>STM32 hứng ngắt CAN và gom gói tin UDP:</strong>
+    Bộ lọc phần cứng của STM32 kích hoạt hàm ngắt <code>HAL_CAN_RxFifo0MsgPendingCallback()</code>, lưu số liệu vào biến toàn cục <code>zlac_fb</code>.
+    Đúng nhịp $20.00	ext{ ms}$, STM32 đóng gói struct <code>UDP_FeedbackPacket_t</code> 16 bytes:
+    <br><code>Header (2B: 0x55 0xAA) + Vel_A (2B) + Vel_B (2B) + Pos_A (4B) + Pos_B (4B) + Error (2B)</code>
+    và gọi <code>sendto()</code> qua W5500 bắn ngược về IP máy tính Ubuntu.
+</div>
+
+<div class="step-card">
+    <span class="step-number">Chặng 4</span> <strong>Python giải mã và in kết quả:</strong>
+    Script Python đọc gói 16 bytes qua <code>struct.unpack('&lt;HhhllH', data)</code>, tính ra vận tốc $m/s$, quãng đường Odometry tích lũy, đo độ trễ Round-Trip (chỉ mất $0.2	ext{ ms}$) và in lên Terminal!
+</div>
+
+<h2 id="s1.3">1.3 Cấu trúc định dạng gói tin nhị phân (Packet Protocol)</h2>
+
+<div class="diagram-box">
+A. GÓI ĐIỀU KHIỂN TỪ PC XUỐNG STM32 (12 BYTES - UDP PORT 8888):
+Offset:  0      1      2..5          6..9          10..11
+Byte:   [0xAA] [0x55] [v (float)]   [omega (fl)]  [CRC-16 (uint16)]
+         └─────┬─────┘ └──────┬──────┘ └─────┬──────┘ └──────┬───────┘
+            Header       Vận tốc dài    Vận tốc góc    CRC-16 Modbus
+            (2B)         (4B float)     (4B float)     (0xA001)
+
+B. GÓI TELEMETRY TỪ STM32 VỀ PC (16 BYTES - UDP PORT 8888):
+Offset:  0      1      2..3          4..5          6..9         10..13       14..15
+Byte:   [0x55] [0xAA] [vel_a(i16)]  [vel_b(i16)]  [pos_a(i32)] [pos_b(i32)] [error(u16)]
+         └─────┬─────┘ └──────┬──────┘ └─────┬──────┘ └─────┬──────┘ └─────┬──────┘ └────┬────┘
+            Header     Vận tốc MotorA Vận tốc MotorB  Encoder A    Encoder B    Mã lỗi
+            (2B)       (0.1 RPM)      (0.1 RPM)      (Số xung)    (Số xung)    (0 = OK)
+</div>
+
+<h2 id="s1.4">1.4 Bảng quy đổi đơn vị đo lường then chốt</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Đại lượng</th>
+            <th>Ký hiệu</th>
+            <th>Đơn vị PC / ROS</th>
+            <th>Đơn vị Driver ZLAC</th>
+            <th>Công thức chuyển đổi</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Vận tốc dài</td>
+            <td>$v$</td>
+            <td>$	ext{m/s}$</td>
+            <td>$	ext{RPM}$</td>
+            <td>$	ext{RPM} = rac{v}{2\pi R} 	imes 60$</td>
+        </tr>
+        <tr>
+            <td>Vận tốc góc</td>
+            <td>$\omega$</td>
+            <td>$	ext{rad/s}$</td>
+            <td>$	ext{RPM}$</td>
+            <td>$v_{	ext{wheel}} = \pm rac{\omega \cdot L}{2} ightarrow 	ext{RPM}$</td>
+        </tr>
+        <tr>
+            <td>Vận tốc phản hồi (TPDO0)</td>
+            <td>$v_{	ext{fb}}$</td>
+            <td>$	ext{RPM}$</td>
+            <td>$0.1\,	ext{RPM}$</td>
+            <td>$	ext{RPM} = 	ext{Giá trị ZLAC} 	imes 0.1$</td>
+        </tr>
+        <tr>
+            <td>Vị trí góc bánh xe</td>
+            <td>$	heta$</td>
+            <td>$	ext{rad}$</td>
+            <td>$	ext{pulses}$ (xung)</td>
+            <td>$	ext{Quãng đường } s = rac{	ext{xung}}{4096} 	imes 2\pi R$</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- =========================================================== -->
+<!-- PHẦN 2: TẦNG ETHERNET W5500                               -->
+<!-- =========================================================== -->
+<div class="part-header" id="part2">
+    <h1>PHẦN 2: TẦNG TRUYỀN THÔNG MẠNG ETHERNET W5500 QUA SPI</h1>
+    <p>Tại sao W5500 là giải pháp tối ưu số 1 cho kết nối phần cứng thời gian thực</p>
+</div>
+
+<h2 id="s2.1">2.1 Vì sao chọn Ethernet UDP mà không dùng UART/USB hay TCP?</h2>
+
+<div class="example-box">
+    <span class="box-title">So sánh 3 phương thức truyền thông:</span>
+    <ul>
+        <li><strong>UART / USB Serial:</strong> Dễ cắm, nhưng tiếp xúc cơ khí lỏng lẻo. Điện áp tham chiếu GND chung dễ bị giật sụt áp khi động cơ kéo tải nặng, gây ngắt kết nối USB giữa chừng.</li>
+        <li><strong>TCP (Transmission Control Protocol):</strong> Có cơ chế bắt tay và tự động gửi lại khi mất gói. Nhưng trong điều khiển robot, <em>một gói tin vận tốc bị trễ $100	ext{ ms}$ là gói tin rác</em>. Nếu mạng bị nghẽn nhẹ, TCP sẽ bắt toàn bộ hệ thống dừng lại chờ gửi lại (Head-of-Line Blocking), làm robot giật cục nguy hiểm.</li>
+        <li><strong>UDP (User Datagram Protocol):</strong> Bắn gói tin trực tiếp không cần bắt tay. Độ trễ khứ hồi cực thấp ($pprox 0.2	ext{ ms}$). Nếu 1 gói bị mất, chu kỳ 20ms sau gói mới nhất lập tức thế chỗ. Rất mượt mà và an toàn!</li>
+    </ul>
+</div>
+
+<h2 id="s2.2">2.2 Bản chất chip W5500: Hardwired TCP/IP Stack</h2>
+
+<p>
+    W5500 khác hoàn toàn các module Ethernet giá rẻ (như ENC28J60). Chip này tích hợp sẵn toàn bộ ngăn xếp giao thức mạng (MAC, PHY, IPv4, ARP, ICMP, UDP, TCP) bằng <strong>mạch bán dẫn phần cứng (Hardwired Silicon)</strong>.
+    STM32 không cần phải chạy thư viện phần mềm LwIP nặng nề, không tốn RAM vi điều khiển và không tốn chu kỳ tính toán UDP checksum.
+</p>
+
+<h2 id="s2.3">2.3 Giao tiếp SPI1 STM32 ↔ W5500: Bài học sườn xung CS và cờ Overrun (OVR)</h2>
+
+<div class="important-note">
+    <span class="box-title">⚡ 2 lỗi sống còn khiến W5500 không hoạt động đã được fix trong dự án:</span>
+    <ol>
+        <li><strong>Chân CS (PA4) phải ở mức HIGH trước khi Reset:</strong> W5500 cần nhìn thấy sườn xuống (Falling Edge: HIGH ➔ LOW) để bắt đầu một phiên truyền dữ liệu SPI. Nếu CubeMX khởi tạo chân CS ở mức LOW sẵn, W5500 sẽ coi tín hiệu bị treo và từ chối giao tiếp.
+            <br><em>Giải pháp trong main.c:</em>
+            <code>HAL_GPIO_WritePin(W5500_CS_GPIO_Port, W5500_CS_Pin, GPIO_PIN_SET);</code>
+        </li>
+        <li><strong>Bắt buộc dùng SPI song công (Full-Duplex):</strong> SPI hoạt động theo cơ chế thanh ghi dịch: vừa đẩy 1 byte ra MOSI thì thanh ghi nhận MISO cũng nhận 1 byte vào. Nếu dùng <code>HAL_SPI_Transmit</code> mà không đọc byte nhận ra, bộ đệm SPI sẽ bị tràn và cờ Overrun (OVR) bật lên khóa cứng ngoại vi SPI.
+            <br><em>Giải pháp:</em> Dùng <code>HAL_SPI_TransmitReceive</code> để dọn sạch thanh ghi đệm sau mỗi byte.
+        </li>
+    </ol>
+</div>
+
+<h2 id="s2.4">2.4 Cơ chế bảo toàn dữ liệu: Thuật toán CRC-16 Modbus (Đa thức 0xA001)</h2>
+
+<p>
+    Trong nhà máy, các biến tần và cuộn cảm động cơ phát ra sóng nhiễu điện từ trường (EMI) rất mạnh. Một tia xung nhiễu lọt vào dây cáp có thể biến đổi giá trị vận tốc $v = 0.05	ext{ m/s}$ thành $5.0	ext{ m/s}$.
+    Nếu chỉ dùng phép cộng dồn Checksum đơn giản (tổng các byte), khi có 2 byte cùng bị đảo bit triệt tiêu nhau, Checksum sẽ không phát hiện ra lỗi!
+</p>
+<p>
+    Thuật toán <strong>CRC-16 Modbus</strong> sử dụng phép chia đa thức modulo-2 trên trường Galois:
+</p>
+<pre><code>// Hàm tính CRC-16 Modbus chuẩn trên STM32:
+uint16_t Calculate_CRC16(const uint8_t *data, uint16_t length)
+{
+    uint16_t crc = 0xFFFF; // Giá trị khởi tạo
+    for (uint16_t i = 0; i < length; i++)
+    {
+        crc ^= data[i];
+        for (uint8_t j = 0; j < 8; j++)
+        {
+            if (crc & 0x0001) {
+                crc = (crc >> 1) ^ 0xA001; // Đa thức đảo 0xA001
+            } else {
+                crc = crc >> 1;
+            }
+        }
+    }
+    return crc;
+}</code></pre>
+
+<h2 id="s2.5">2.5 Cơ chế Watchdog an toàn mạng 250ms (Fail-Safe)</h2>
+
+<p>
+    Điều gì xảy ra nếu dây mạng LAN bị tuột hoặc máy tính Ubuntu bị treo màn hình xanh trong lúc xe đang chạy?
+    Nếu không có Watchdog, Driver sẽ tiếp tục giữ lệnh vận tốc cũ và xe sẽ lao thẳng vào tường!
+</p>
+<pre><code>// Đoạn code an toàn sinh mạng trong main.c:
+if (HAL_GetTick() - last_udp_rx_time > 250)
+{
+    ZLAC_Stop(); // Ngắt ngay dòng điện động cơ sau 0.25 giây mất gói tin!
+}</code></pre>
+
+<!-- =========================================================== -->
+<!-- PHẦN 3: TẦNG CAN BUS & CANOPEN                             -->
+<!-- =========================================================== -->
+<div class="part-header" id="part3">
+    <h1>PHẦN 3: TẦNG BUS CÔNG NGHIỆP CAN & GIAO THỨC CANOPEN</h1>
+    <p>Tiêu chuẩn truyền thông mạnh mẽ chống nhiễu hàng đầu trong ngành công nghiệp ô tô</p>
+</div>
+
+<h2 id="s3.1">3.1 Tầng vật lý CAN: Tín hiệu vi sai & Trở đầu cuối 120Ω</h2>
+
+<p>
+    CAN Bus không đo điện áp so với mass GND (vì mass ở các cụm thiết bị khác nhau có thể bị lệch áp vài Volt khi có dòng tải lớn).
+    CAN sử dụng <strong>Điện áp vi sai ($V_{	ext{diff}} = V_H - V_L$)</strong> giữa 2 dây xoắn `CAN_H` và `CAN_L`:
+</p>
+<ul>
+    <li><strong>Bit 0 (Dominant - Trội):</strong> $V_H = 3.5	ext{ V}, V_L = 1.5	ext{ V} ightarrow V_{	ext{diff}} = 2.0	ext{ V}$.</li>
+    <li><strong>Bit 1 (Recessive - Lặn):</strong> $V_H = 2.5	ext{ V}, V_L = 2.5	ext{ V} ightarrow V_{	ext{diff}} = 0.0	ext{ V}$.</li>
+</ul>
+<p>
+    Hai điện trở $120\,\Omega$ ở hai đầu xa nhất của đường dây đóng vai trò phối hợp trở kháng đường truyền cao tần ($60\,\Omega$ tương đương), triệt tiêu hiện tượng <strong>sóng phản xạ dội ngược</strong> gây lỗi bus.
+</p>
+
+<h2 id="s3.2">3.2 Cấu trúc khung CAN 2.0B tiêu chuẩn (COB-ID 11-bit)</h2>
+
+<p>
+    Mỗi gói tin CAN bao gồm mã định danh <strong>COB-ID 11-bit</strong> (giá trị từ `0x000` đến `0x7FF`) và tối đa <strong>8 bytes dữ liệu payload</strong>.
+    Trên bus CAN, quy tắc trọng tài phân xử bit (Bitwise Arbitration) quy định: <strong>COB-ID nào có giá trị số nhỏ hơn thì có mức ưu tiên cao hơn</strong> (ví dụ gói khẩn cấp NMT `0x000` hay gói SYNC `0x080` luôn đè bẹp các gói dữ liệu thông thường).
+</p>
+
+<h2 id="s3.3">3.3 Bộ tứ CANopen: NMT, SDO, PDO, SYNC</h2>
+
+<div class="step-card">
+    <span class="step-number">1</span> <strong>NMT (Network Management):</strong> Lệnh mạng đánh thức trạng thái thiết bị từ <em>Pre-Operational</em> (chỉ cài đặt) sang <em>Operational</em> (cho phép động cơ quay).
+</div>
+<div class="step-card">
+    <span class="step-number">2</span> <strong>SDO (Service Data Object):</strong> Giao thức hỏi-đáp tin cậy dùng để đọc/ghi các thông số cấu hình trong từ điển đối tượng (Object Dictionary).
+</div>
+<div class="step-card">
+    <span class="step-number">3</span> <strong>PDO (Process Data Object):</strong> Truyền dữ liệu thời gian thực không overhead:
+    <br>• <strong>RPDO0 (ID `0x201`):</strong> STM32 gửi vận tốc mục tiêu cho Motor 1 & 2.
+    <br>• <strong>TPDO0 (ID `0x181`):</strong> ZLAC phản hồi vận tốc thực tế của 2 motor.
+    <br>• <strong>TPDO2 (ID `0x381`):</strong> ZLAC phản hồi số xung vị trí Encoder tích lũy của 2 motor.
+</div>
+<div class="step-card">
+    <span class="step-number">4</span> <strong>SYNC (ID `0x080`):</strong> Xung nhịp đồng bộ 20ms STM32 phát ra để Driver chốt dữ liệu encoder cùng một thời điểm.
+</div>
+
+<h2 id="s3.4">3.4 Từ điển đối tượng của Driver ZLAC8015D</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Index</th>
+            <th>Subindex</th>
+            <th>Tên thanh ghi</th>
+            <th>Kích thước</th>
+            <th>Mục đích sử dụng trong project</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>0x6060</code></td>
+            <td><code>0x00</code></td>
+            <td>Modes of Operation</td>
+            <td>1 Byte</td>
+            <td>Cài đặt chế độ: <code>3</code> = Profile Velocity Mode (Điều khiển vận tốc)</td>
+        </tr>
+        <tr>
+            <td><code>0x6040</code></td>
+            <td><code>0x00</code></td>
+            <td>Controlword</td>
+            <td>2 Bytes</td>
+            <td>Kích hoạt 3 bước: <code>0x06</code> ➔ <code>0x07</code> ➔ <code>0x0F</code> (Enable Operation)</td>
+        </tr>
+        <tr>
+            <td><code>0x60FF</code></td>
+            <td><code>0x01 / 0x02</code></td>
+            <td>Target Velocity</td>
+            <td>4 Bytes</td>
+            <td>Vận tốc đặt cho Motor 1 & 2 (Đơn vị: <strong>1 RPM</strong>)</td>
+        </tr>
+        <tr>
+            <td><code>0x606C</code></td>
+            <td><code>0x01 / 0x02</code></td>
+            <td>Velocity Actual Value</td>
+            <td>4 Bytes</td>
+            <td>Vận tốc thực tế phản hồi (Đơn vị: <strong>0.1 RPM</strong>)</td>
+        </tr>
+        <tr>
+            <td><code>0x6064</code></td>
+            <td><code>0x01 / 0x02</code></td>
+            <td>Position Actual Value</td>
+            <td>4 Bytes</td>
+            <td>Số xung Encoder tích lũy (Đơn vị: <strong>4096 xung/vòng</strong>)</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2 id="s3.5">3.5 Giải mã TPDO Mapping: Vì sao trước đây Driver ZLAC hoàn toàn im lặng?</h2>
+
+<div class="important-note">
+    <span class="box-title">🔍 Nguyên nhân gốc rễ:</span>
+    Mặc định xuất xưởng từ nhà máy, Driver ZLAC8015D **tắt toàn bộ TPDO** (`Number of mapped objects = 0`, `Event Timer = 0`).
+    Nếu STM32 không cấu hình bảng ánh xạ (Mapping) vào các thanh ghi `0x1A00` và `0x1800`, Driver không biết phải gửi dữ liệu gì và gửi khi nào, dẫn đến việc dữ liệu trả về luôn bằng 0.
+    Hai hàm <code>_TPDO0_Config()</code> và <code>_TPDO2_Config()</code> trong `zlac_can.c` đã giải quyết triệt để lỗi này!
+</div>
+
+<!-- =========================================================== -->
+<!-- PHẦN 4: TOÁN HỌC ĐỘNG HỌC VI SAI                           -->
+<!-- =========================================================== -->
+<div class="part-header" id="part4">
+    <h1>PHẦN 4: TOÁN HỌC ĐỘNG HỌC VI SAI TRONG PROJECT (KINEMATICS)</h1>
+    <p>Biến đổi chính xác giữa không gian vận tốc thân xe và không gian bánh xe</p>
+</div>
+
+<h2 id="s4.1">4.1 Động học thuận (Forward Kinematics)</h2>
+
+<p>
+    Với bán kính bánh xe $R = 0.08	ext{ m}$ và khoảng cách hai vệt bánh $L = 0.40	ext{ m}$:
+</p>
+$$v = rac{v_R + v_L}{2}, \qquad \omega = rac{v_R - v_L}{L}$$
+
+<h2 id="s4.2">4.2 Động học nghịch (Inverse Kinematics)</h2>
+
+<p>
+    Từ vận tốc dài $v$ ($	ext{m/s}$) và vận tốc góc $\omega$ ($	ext{rad/s}$) nhận được từ máy tính, STM32 phân phối tốc độ dài cho từng bánh:
+</p>
+$$v_L = v - rac{\omega \cdot L}{2}, \qquad v_R = v + rac{\omega \cdot L}{2}$$
+<p>Sau đó quy đổi sang số vòng quay mỗi phút ($	ext{RPM}$):</p>
+$$	ext{RPM}_L = rac{v_L}{2\pi R} 	imes 60, \qquad 	ext{RPM}_R = rac{v_R}{2\pi R} 	imes 60$$
+
+<h2 id="s4.3">4.3 Bài học lỗi x10 tốc độ</h2>
+
+<div class="important-note">
+    <span class="box-title">⚠️ Đơn vị thanh ghi 0x60FF của ZLAC là 1 RPM:</span>
+    Trước đây code nhân thêm $10.0$ làm xe chạy nhanh gấp 10 lần vận tốc mong muốn ($0.05	ext{ m/s}$ vọt lên $0.5	ext{ m/s}$).
+    Đoạn code chuẩn trong `zlac_can.c` hiện tại:
+    <pre><code>// Đúng chuẩn 1 RPM nguyên bản:
+int16_t zlac_L = (int16_t)roundf(rpm_L);
+int16_t zlac_R = (int16_t)roundf(rpm_R);</code></pre>
+</div>
+
+<h2 id="s4.4">4.4 Tích phân vị trí (Dead Reckoning Odometry)</h2>
+
+<p>Trong `test_robot_telemetry.py`, quãng đường tịnh tiến $s$ và góc hướng $	heta$ được tính từ số xung Encoder tích lũy:</p>
+$$\Delta s = rac{\Delta 	ext{pulse}_R + \Delta 	ext{pulse}_L}{2 	imes 4096} 	imes (2\pi R)$$
+$$\Delta 	heta = rac{\Delta 	ext{pulse}_R - \Delta 	ext{pulse}_L}{4096 	imes L} 	imes (2\pi R)$$
+
+<!-- =========================================================== -->
+<!-- PHẦN 5: ĐỊNH THỜI THỜI GIAN THỰC                           -->
+<!-- =========================================================== -->
+<div class="part-header" id="part5">
+    <h1>PHẦN 5: ĐỊNH THỜI THỜI GIAN THỰC (HARD REAL-TIME & 50HZ)</h1>
+    <p>Bản chất hiện tượng tụt tần số và kiến trúc ngắt chuẩn công nghiệp</p>
+</div>
+
+<h2 id="s5.1">5.1 Mổ xẻ hiện tượng tụt tần số 47.4Hz do lỗi Lượng tử hóa</h2>
+
+<p>
+    Khi có lệnh `HAL_Delay(5)` ở đáy vòng lặp, mỗi vòng lặp `while(1)` tiêu tốn:
+    $5	ext{ ms (delay)} + 0.2	ext{ ms (code)} = 5.2	ext{ ms}$.
+    <br>• Vòng 1: $t = 5.2	ext{ ms} < 20 ightarrow$ Bỏ qua.
+    <br>• Vòng 2: $t = 10.4	ext{ ms} < 20 ightarrow$ Bỏ qua.
+    <br>• Vòng 3: $t = 15.6	ext{ ms} < 20 ightarrow$ Bỏ qua.
+    <br>• Vòng 4: $t = 20.8	ext{ ms} ightarrow$ Đồng hồ số nguyên SysTick nhảy sang **$21	ext{ ms}$**!
+    <br>Điều kiện `21 - 0 >= 20` lúc này mới thỏa mãn, gói tin bị phát trễ ở mốc 21ms.
+    <br>Tần số: $f = rac{1000	ext{ ms}}{21	ext{ ms}} = \mathbf{47.619	ext{ Hz}}$ (trùng khớp chính xác với log $47.4 \sim 47.7	ext{ Hz}$ của bạn!).
+</p>
+
+<h2 id="s5.2">5.2 Vì sao vi điều khiển bare-metal không cần `HAL_Delay` để "nhường CPU"?</h2>
+
+<p>
+    Trên Windows/Linux, `sleep()` là để nhường luồng (Thread Yield) cho hệ điều hành không bị 100% CPU.
+    Nhưng trên vi điều khiển STM32 không có OS, hàm `HAL_Delay()` thực chất là một **vòng lặp rỗng (while loop)** đốt chu kỳ CPU. CPU vẫn dao động 72 triệu lần mỗi giây, không hề tiết kiệm điện hay "nhường" cho ai.
+    Do đó, giảm `HAL_Delay` về 1ms hoặc dùng cờ hiệu ngắt sẽ giúp CPU phản hồi tức thì với các sự kiện mạng.
+</p>
+
+<h2 id="s5.3">5.3 Cạm bẫy: Vì sao cấm gọi W5500 & CAN trong hàm ngắt ISR?</h2>
+
+<div class="important-note">
+    <span class="box-title">🛑 2 nguy cơ gây treo cứng hệ thống:</span>
+    <ul>
+        <li><strong>Tranh chấp tài nguyên SPI (Re-entrancy):</strong> Vòng lặp chính đang kéo chân CS xuống mức LOW để đọc gói tin. Nếu ngắt Timer xảy ra đột ngột và cũng gọi `sendto()` qua SPI, chân CS và thanh ghi dữ liệu sẽ bị giẫm đạp lên nhau gây kẹt bus SPI.</li>
+        <li><strong>Deadlock với SysTick:</strong> Các hàm timeout của thư viện HAL dựa vào `HAL_GetTick()`. Nếu ngắt Timer chạy hàm truyền thông lâu và chặn mất ngắt SysTick, đồng hồ dừng lại và hàm truyền thông sẽ chờ vô hạn $ightarrow$ Treo chip!</li>
+    </ul>
+</div>
+
+<h2 id="s5.4">5.4 Kiến trúc chuẩn: Hardware Timer Interrupt + Flag Pattern</h2>
+
+<div class="step-card">
+    <span class="step-number">Chuẩn</span> <strong>Bộ đếm phần cứng TIM2 (@ 72MHz) với Prescaler = 7199, Period = 199:</strong>
+    Đúng chu kỳ $20.00\,	ext{ms}$, Timer kích hoạt hàm ngắt cực ngắn ($< 0.05\,\mu	ext{s}$) chỉ để gán:
+    <code>flag_telemetry_50hz = 1;</code> rồi thoát ngay.
+    Vòng lặp `while(1)` thấy cờ thì xóa cờ và phát gói tin. Cách này triệt tiêu hoàn toàn Jitter và đạt tần số $50.00	ext{ Hz}$ phẳng tuyệt đối.
+</div>
+
+<!-- =========================================================== -->
+<!-- PHẦN 6: CODE WALKTHROUGH                                   -->
+<!-- =========================================================== -->
+<div class="part-header" id="part6">
+    <h1>PHẦN 6: HƯỚNG DẪN BÓC TÁCH TỪNG DÒNG CODE TRONG PROJECT</h1>
+    <p>Giải mã cấu trúc mã nguồn để bạn đọc hiểu dễ dàng mà không bị ngộp</p>
+</div>
+
+<h2 id="s6.1">6.1 Bóc tách file `Core/Src/main.c`</h2>
+
+<pre><code>// 1. Cấu hình W5500: Kéo CS lên HIGH trước, kích xung RST
+HAL_GPIO_WritePin(W5500_CS_GPIO_Port, W5500_CS_Pin, GPIO_PIN_SET);
+HAL_GPIO_WritePin(W5500_RST_GPIO_Port, W5500_RST_Pin, GPIO_PIN_RESET);
+HAL_Delay(10);
+HAL_GPIO_WritePin(W5500_RST_GPIO_Port, W5500_RST_Pin, GPIO_PIN_SET);
+HAL_Delay(50);
+
+// 2. Đăng ký hàm giao tiếp SPI song công cho thư viện WIZnet
+reg_wizchip_cs_cbfunc(W5500_Select, W5500_Deselect);
+reg_wizchip_spi_cbfunc(W5500_ReadByte, W5500_WriteByte);
+
+// 3. Mở Socket số 0 ở chế độ UDP, lắng nghe Port 8888
+socket(0, Sn_MR_UDP, 8888, 0);
+
+// 4. Vòng lặp chính while(1):
+while (1)
+{
+    ZLAC_StateMachine(); // Quản lý máy trạng thái CANopen
+
+    // Kiểm tra gói nhận từ PC
+    if (getSn_RX_RSR(0) >= sizeof(UDP_ControlPacket_t))
+    {
+        recvfrom(0, (uint8_t*)&cmd_pkt, sizeof(UDP_ControlPacket_t), remote_ip, &remote_port);
+        if (cmd_pkt.header[0] == 0xAA && cmd_pkt.header[1] == 0x55)
+        {
+            if (Calculate_CRC16((uint8_t*)&cmd_pkt, 10) == cmd_pkt.checksum)
+            {
+                last_udp_rx_time = HAL_GetTick(); // Reset Watchdog
+                if (ZLAC_IsReady()) ZLAC_SetSpeed_mps(cmd_pkt.v, cmd_pkt.omega);
+            }
+        }
+    }
+
+    // Watchdog an toàn 250ms
+    if (HAL_GetTick() - last_udp_rx_time > 250) ZLAC_Stop();
+
+    // Bắn gói phản hồi 50Hz (mỗi 20ms)
+    if (HAL_GetTick() - last_feedback_time >= 20)
+    {
+        last_feedback_time += 20; // Bù bước thời gian cố định
+        // Bắn SYNC CAN & gửi UDP Feedback 16 bytes
+        HAL_CAN_AddTxMessage(&hcan, &sync_hdr, NULL, &sync_mailbox);
+        sendto(0, (uint8_t*)&fb_pkt, sizeof(UDP_FeedbackPacket_t), remote_ip, remote_port);
+    }
+    HAL_Delay(1); // Tránh nghẽn vòng lặp
+}</code></pre>
+
+<h2 id="s6.2">6.2 Bóc tách file `Core/Src/zlac_can.c`</h2>
+
+<ul>
+    <li><code>ZLAC_StateMachine()</code>: Khởi động mạng NMT, cấu hình TPDO0 và TPDO2 trong trạng thái <code>ZLAC_CONFIG</code>, sau đó kích hoạt 3 bước Enable để chuyển sang <code>ZLAC_RUNNING</code>.</li>
+    <li><code>ZLAC_SetSpeed_mps()</code>: Nhận $(v, \omega)$, tính ra $	ext{RPM}_L, 	ext{RPM}_R$ và phát frame CAN `0x201`.</li>
+    <li><code>HAL_CAN_RxFifo0MsgPendingCallback()</code>: Ngắt nhận dữ liệu từ ZLAC, tự động bóc tách vận tốc thực và số xung encoder đưa vào biến toàn cục <code>zlac_fb</code>.</li>
+</ul>
+
+<h2 id="s6.3">6.3 Bóc tách file `scripts/test_robot_telemetry.py`</h2>
+
+<pre><code># Client UDP non-blocking phía Python:
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.settimeout(0.01)
+
+# Đóng gói nhị phân và tính CRC-16 Modbus:
+payload = struct.pack('<BBff', 0xAA, 0x55, V_TARGET, OMEGA_TARGET)
+crc = calculate_crc16(payload)
+packet = payload + struct.pack('<H', crc)
+sock.sendto(packet, (STM32_IP, STM32_PORT))
+
+# Nhận phản hồi 16 bytes và giải mã:
+data, _ = sock.recvfrom(1024)
+header, vel_a, vel_b, pos_a, pos_b, err = struct.unpack('<HhhllH', data)</code></pre>
+
+<!-- =========================================================== -->
+<!-- PHẦN 7: BÀI HỌC KINH NGHIỆM XƯƠNG MÁU                     -->
+<!-- =========================================================== -->
+<div class="part-header" id="part7">
+    <h1>PHẦN 7: TỔNG HỢP CÁC LỖI THỰC TẾ ĐÃ GẶP & CÁCH XỬ LÝ</h1>
+    <p>Kinh nghiệm thực chiến quý báu được rút ra trực tiếp từ quá trình phát triển dự án</p>
+</div>
+
+<div class="step-card" id="err1">
+    <span class="step-number">Lỗi 1</span> <strong>W5500 không Ping được:</strong> Do CS mặc định mức LOW và hàm đọc SPI không song công gây cờ OVR. <em>Khắc phục:</em> Kéo CS lên HIGH trước khi kích xung RST và dùng <code>HAL_SPI_TransmitReceive</code>.
+</div>
+
+<div class="step-card" id="err2">
+    <span class="step-number">Lỗi 2</span> <strong>Biên dịch báo thiếu hàm WIZnet:</strong> Do file `wizchip_conf.h` mặc định `#define _WIZCHIP_ W6300`. <em>Khắc phục:</em> Đổi sang `#define _WIZCHIP_ W5500`.
+</div>
+
+<div class="step-card" id="err3">
+    <span class="step-number">Lỗi 3</span> <strong>Động cơ quay nhưng Feedback bằng 0:</strong> Do xuất xưởng ZLAC tắt toàn bộ TPDO. <em>Khắc phục:</em> Viết 2 hàm <code>_TPDO0_Config()</code> và <code>_TPDO2_Config()</code> ánh xạ vận tốc và encoder về ID `0x181` và `0x381`.
+</div>
+
+<div class="step-card" id="err4">
+    <span class="step-number">Lỗi 4</span> <strong>Xe chạy nhanh gấp 10 lần vận tốc đặt:</strong> Do nhầm lẫn thanh ghi `0x60FF` là $0.1\,	ext{RPM}$ nên nhân thừa 10. <em>Khắc phục:</em> Đơn vị thực tế là $1\,	ext{RPM}$, sửa lại <code>(int16_t)roundf(rpm)</code>.
+</div>
+
+<div class="step-card" id="err5">
+    <span class="step-number">Lỗi 5</span> <strong>Xe đứng im khi thêm CRC:</strong> Do STM32 dùng CRC-16 Modbus còn Python gửi checksum cộng dồn `sum(payload)`. <em>Khắc phục:</em> Đồng bộ thuật toán CRC-16 Modbus ở cả 2 đầu.
+</div>
+
+<div class="step-card" id="err6">
+    <span class="step-number">Lỗi 6</span> <strong>Tần số nhận bị tụt về 47.4Hz:</strong> Do lệnh `HAL_Delay(5)` kéo giãn chu kỳ kiểm tra thành 21ms. <em>Khắc phục:</em> Giảm về `HAL_Delay(1)` và dùng kiến trúc Timer ngắt.
+</div>
+
+<!-- =========================================================== -->
+<!-- PHẦN 8: BỘ KỸ NĂNG CHUYỂN GIAO NGHỀ NGHIỆP                -->
+<!-- =========================================================== -->
+<div class="part-header-special" id="part8">
+    <h1>PHẦN 8: BỘ KỸ NĂNG NGHỀ NGHIỆP TÁI SỬ DỤNG CHO MỌI DỰ ÁN</h1>
+    <p>Các tư duy kiến trúc và Design Pattern giúp bạn tự tin xây dựng bất kỳ hệ thống nhúng nào</p>
+</div>
+
+<h2 id="sk1">Kỹ năng 1: Thiết kế Giao thức Nhị phân & Bẫy Căn chỉnh bộ nhớ (Struct Padding)</h2>
+<p>
+    Luôn sử dụng <code>#pragma pack(push, 1)</code> trong C để triệt tiêu byte đệm rác của trình biên dịch ARM 32-bit, và luôn dùng ký tự <code>&lt;</code> trong Python <code>struct.pack('&lt;...', ...)</code> để khóa cứng chuẩn Little-Endian trên mọi nền tảng.
+</p>
+
+<h2 id="sk2">Kỹ năng 2: Máy Trạng Thái Phi Chặn (Non-Blocking FSM Pattern)</h2>
+<p>
+    Tuyệt đối không dùng <code>delay()</code> tuần tự khi khởi động module phức tạp. Luôn chia nhỏ thành các trạng thái (State) với <code>enum</code> và kiểm tra biến đếm thời gian <code>HAL_GetTick()</code> để giữ vi điều khiển luôn phản hồi tức thì với các sự kiện ngắt.
+</p>
+
+<h2 id="sk3">Kỹ năng 3: Tiêu Chuẩn Quốc Tế CiA 402 Cho Mọi Loại Servo Công Nghiệp</h2>
+<p>
+    Quy trình 3 bước kích hoạt qua Controlword `0x6040` (<code>0x06</code> ➔ <code>0x07</code> ➔ <code>0x0F</code>) và các thanh ghi `0x6060`, `0x60FF`, `0x6064` là tiêu chuẩn chung của Maxon Motor, Faulhaber, Oriental Motor, Leadshine, Inovance. Học 1 lần là áp dụng được cho mọi servo công nghiệp trên thế giới.
+</p>
+
+<h2 id="sk4">Kỹ năng 4: Chiến Lược An Toàn Đa Tầng (Defense-in-Depth Safety)</h2>
+<p>
+    Bảo vệ 4 tầng: Tầng 1 (CRC-16 bảo vệ bit dữ liệu) ➔ Tầng 2 (Watchdog 250ms bảo vệ đứt cáp mạng) ➔ Tầng 3 (Statusword bảo vệ quá tải motor) ➔ Tầng 4 (IWDG phần cứng bảo vệ vi điều khiển kẹt code).
+</p>
+
+<h2 id="sk5">Kỹ năng 5: Quy trình Bắt bệnh & Debug Bus Truyền thông</h2>
+<p>
+    Bắt gói mạng với Wireshark (lọc ARP/UDP); kiểm tra tầng vật lý CAN bằng đồng hồ đo điện trở (đúng $60\,\Omega$ khi ngắt nguồn); đo thời gian thực thi bằng chân GPIO kết hợp máy hiện sóng Oscilloscope.
+</p>
+
+<!-- =========================================================== -->
+<!-- PHẦN 9: QUIZ                                               -->
+<!-- =========================================================== -->
+<div class="part-header" id="part9">
+    <h1>PHẦN 9: BỘ CÂU HỎI TRẮC NGHIỆM TỰ ĐÁNH GIÁ NĂNG LỰC (QUIZ)</h1>
+    <p>Củng cố vững chắc kiến thức cốt lõi của dự án</p>
+</div>
+
+<div class="quiz-section">
+    <h3>Câu 1: Tại sao mạng CAN Bus bắt buộc phải có 2 điện trở đầu cuối 120Ω ở hai đầu bus?</h3>
+    <div class="quiz-question">
+        A. Để chia điện áp cấp nguồn cho các transceiver.<br>
+        B. Để triệt tiêu hiện tượng sóng phản xạ dội ngược gây méo dạng tín hiệu cao tần.<br>
+        C. Để tăng tốc độ baudrate từ 125kbps lên 500kbps.<br>
+        D. Để lọc nhiễu tần số thấp từ động cơ.
+    </div>
+    <div class="answer-section">
+        <span class="box-title">Đáp án chính xác: B</span>
+        <p>Tín hiệu điện truyền với vận tốc ánh sáng trên dây. Khi gặp đầu hở mạch, sóng điện sẽ dội ngược lại gây méo mó bit dữ liệu. Hai trở 120Ω song song tạo trở kháng tương đương 60Ω hấp thụ hoàn toàn sóng tới.</p>
+    </div>
+</div>
+
+<div class="quiz-section">
+    <h3>Câu 2: Tại sao trong điều khiển động cơ robot thời gian thực, giao thức UDP lại được ưu tiên hơn TCP?</h3>
+    <div class="quiz-question">
+        A. Vì UDP có tính năng mã hóa dữ liệu bảo mật hơn.<br>
+        B. Vì UDP không bắt tay kết nối, độ trễ khứ hồi cực thấp (0.2ms) và không bị hiện tượng dừng chờ gửi lại khi mất gói.<br>
+        C. Vì UDP chỉ truyền được số thực float.<br>
+        D. Vì chip W5500 không hỗ trợ TCP.
+    </div>
+    <div class="answer-section">
+        <span class="box-title">Đáp án chính xác: B</span>
+        <p>Trong điều khiển robot, một gói tin vận tốc bị trễ 100ms là gói tin rác. Cơ chế tự động retransmit của TCP sẽ làm đóng băng dòng dữ liệu, khiến robot giật cục nguy hiểm. UDP ưu tiên nhận ngay mẫu dữ liệu mới nhất với độ trễ tối thiểu.</p>
+    </div>
+</div>
+
+<div class="quiz-section">
+    <h3>Câu 3: Đơn vị của thanh ghi cài đặt tốc độ mục tiêu 0x60FF trên Driver ZLAC8015D là gì?</h3>
+    <div class="quiz-question">
+        A. $0.1\,	ext{RPM}$<br>
+        B. $1\,	ext{RPM}$ nguyên bản<br>
+        C. $	ext{rad/s}$<br>
+        D. $	ext{m/s}$
+    </div>
+    <div class="answer-section">
+        <span class="box-title">Đáp án chính xác: B</span>
+        <p>Theo tài liệu gốc ZLAC trang 2909 & 2926, thanh ghi 0x60FF có đơn vị là 1 RPM nguyên bản. Code cũ nhân thừa 10.0 đã làm xe chạy nhanh gấp 10 lần thực tế.</p>
+    </div>
+</div>
+
+<div style="text-align: center; margin-top: 60px; padding: 30px; border-top: 2px solid var(--border); color: var(--text-secondary); font-size: 0.95em;">
+    🏁 <strong>CHÚC BẠN LÀM CHỦ 100% KIẾN TRÚC DỰ ÁN CAN_TEST_MOTOR!</strong><br>
+    Tài liệu học tập toàn tập biên soạn đồng bộ với mã nguồn thực tế của dự án.
+</div>
+
+</body>
+</html>
