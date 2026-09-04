@@ -398,6 +398,17 @@
                 <li><a href="#sk5">Kỹ năng 5: Quy trình Bắt bệnh & Debug Bus Truyền thông (Troubleshooting Toolkit)</a></li>
             </ul>
         </li>
+                <li><a href="#part10">PHẦN 10: NHỮNG ĐIỀU NHẤT ĐỊNH PHẢI BIẾT SAU KHI HIỂU ĐƯỢC CODE NÀY (ADVANCED ROADMAP)</a>
+            <ul>
+                <li><a href="#s10.1">10.1 Quản lý Gia tốc & Chống Giật Cơ Khí (Velocity Ramp Profile / S-Curve)</a></li>
+                <li><a href="#s10.2">10.2 Phát Hiện Kẹt Tải & Bảo Vệ Quá Dòng (Stall Detection & Torque Protection)</a></li>
+                <li><a href="#s10.3">10.3 Phương Pháp Hiệu Chuẩn Cơ Khí Thực Tế (Wheel Calibration)</a></li>
+                <li><a href="#s10.4">10.4 Cơ Chế Phanh Hãm Chủ Động (Quick Stop) vs Cắt Điện Tự Do (Coast Stop)</a></li>
+                <li><a href="#s10.5">10.5 Kiến Trúc Kết Nối Chuẩn ROS / ROS 2 (`ros2_control` & Topic Architecture)</a></li>
+                <li><a href="#s10.6">10.6 Tối Ưu Tốc Độ Cao: SPI DMA Burst Mode Cho W5500</a></li>
+                <li><a href="#s10.7">10.7 An Ninh Mạng Điều Khiển & Cô Lập Subnet (Network Security)</a></li>
+            </ul>
+        </li>
         <li><a href="#part9">PHẦN 9: BỘ CÂU HỎI TRẮC NGHIỆM TỰ ĐÁNH GIÁ NĂNG LỰC (QUIZ)</a></li>
     </ul>
 </div>
@@ -424,7 +435,8 @@
     <span class="box-title">❓ VẤN ĐỀ ĐẶT RA:</span>
     <p>
         Máy tính IPC / Laptop của bạn <strong>không có cổng CAN Bus</strong>. Nếu dùng mạch chuyển USB-to-UART hoặc USB-to-CAN rẻ tiền:
-        <br>1. Đầu cắm USB rất dễ lỏng khi xe chạy rung lắc trên sàn gồ ghề $ightarrow$ Xe mất kết nối giữa đường.
+        <br>1. Đầu cắm USB rất dễ lỏng khi xe chạy rung lắc trên sàn gồ ghề $
+ightarrow$ Xe mất kết nối giữa đường.
         <br>2. Cáp USB bị nhiễu điện từ trường (EMI) từ tia lửa điện và cuộn dây động cơ công suất lớn làm treo cổng COM ảo.
         <br>3. Hệ điều hành Linux không có tính thời gian thực cứng (Hard Real-Time), có thể bị giật lag $50 \sim 100	ext{ ms}$.
     </p>
@@ -566,7 +578,8 @@
 
 <div class="step-card">
     <span class="step-number">Chặng 1</span> <strong>Bánh xe quay sinh xung Encoder:</strong>
-    Cứ 1 vòng quay, đĩa mã hóa sinh ra 1024 chu kỳ $ightarrow$ Bộ giải mã đếm 4 cạnh của ZLAC ghi nhận <strong>4096 xung/vòng</strong>. Vận tốc góc thực tế được đo đạc liên tục.
+    Cứ 1 vòng quay, đĩa mã hóa sinh ra 1024 chu kỳ $
+ightarrow$ Bộ giải mã đếm 4 cạnh của ZLAC ghi nhận <strong>4096 xung/vòng</strong>. Vận tốc góc thực tế được đo đạc liên tục.
 </div>
 
 <div class="step-card">
@@ -632,7 +645,8 @@ Byte:   [0x55] [0xAA] [vel_a(i16)]  [vel_b(i16)]  [pos_a(i32)] [pos_b(i32)] [err
             <td>$\omega$</td>
             <td>$	ext{rad/s}$</td>
             <td>$	ext{RPM}$</td>
-            <td>$v_{	ext{wheel}} = \pm rac{\omega \cdot L}{2} ightarrow 	ext{RPM}$</td>
+            <td>$v_{	ext{wheel}} = \pm rac{\omega \cdot L}{2} 
+ightarrow 	ext{RPM}$</td>
         </tr>
         <tr>
             <td>Vận tốc phản hồi (TPDO0)</td>
@@ -747,8 +761,10 @@ if (HAL_GetTick() - last_udp_rx_time > 250)
     CAN sử dụng <strong>Điện áp vi sai ($V_{	ext{diff}} = V_H - V_L$)</strong> giữa 2 dây xoắn `CAN_H` và `CAN_L`:
 </p>
 <ul>
-    <li><strong>Bit 0 (Dominant - Trội):</strong> $V_H = 3.5	ext{ V}, V_L = 1.5	ext{ V} ightarrow V_{	ext{diff}} = 2.0	ext{ V}$.</li>
-    <li><strong>Bit 1 (Recessive - Lặn):</strong> $V_H = 2.5	ext{ V}, V_L = 2.5	ext{ V} ightarrow V_{	ext{diff}} = 0.0	ext{ V}$.</li>
+    <li><strong>Bit 0 (Dominant - Trội):</strong> $V_H = 3.5	ext{ V}, V_L = 1.5	ext{ V} 
+ightarrow V_{	ext{diff}} = 2.0	ext{ V}$.</li>
+    <li><strong>Bit 1 (Recessive - Lặn):</strong> $V_H = 2.5	ext{ V}, V_L = 2.5	ext{ V} 
+ightarrow V_{	ext{diff}} = 0.0	ext{ V}$.</li>
 </ul>
 <p>
     Hai điện trở $120\,\Omega$ ở hai đầu xa nhất của đường dây đóng vai trò phối hợp trở kháng đường truyền cao tần ($60\,\Omega$ tương đương), triệt tiêu hiện tượng <strong>sóng phản xạ dội ngược</strong> gây lỗi bus.
@@ -893,10 +909,14 @@ $$\Delta 	heta = rac{\Delta 	ext{pulse}_R - \Delta 	ext{pulse}_L}{4096 	imes L}
 <p>
     Khi có lệnh `HAL_Delay(5)` ở đáy vòng lặp, mỗi vòng lặp `while(1)` tiêu tốn:
     $5	ext{ ms (delay)} + 0.2	ext{ ms (code)} = 5.2	ext{ ms}$.
-    <br>• Vòng 1: $t = 5.2	ext{ ms} < 20 ightarrow$ Bỏ qua.
-    <br>• Vòng 2: $t = 10.4	ext{ ms} < 20 ightarrow$ Bỏ qua.
-    <br>• Vòng 3: $t = 15.6	ext{ ms} < 20 ightarrow$ Bỏ qua.
-    <br>• Vòng 4: $t = 20.8	ext{ ms} ightarrow$ Đồng hồ số nguyên SysTick nhảy sang **$21	ext{ ms}$**!
+    <br>• Vòng 1: $t = 5.2	ext{ ms} < 20 
+ightarrow$ Bỏ qua.
+    <br>• Vòng 2: $t = 10.4	ext{ ms} < 20 
+ightarrow$ Bỏ qua.
+    <br>• Vòng 3: $t = 15.6	ext{ ms} < 20 
+ightarrow$ Bỏ qua.
+    <br>• Vòng 4: $t = 20.8	ext{ ms} 
+ightarrow$ Đồng hồ số nguyên SysTick nhảy sang **$21	ext{ ms}$**!
     <br>Điều kiện `21 - 0 >= 20` lúc này mới thỏa mãn, gói tin bị phát trễ ở mốc 21ms.
     <br>Tần số: $f = rac{1000	ext{ ms}}{21	ext{ ms}} = \mathbf{47.619	ext{ Hz}}$ (trùng khớp chính xác với log $47.4 \sim 47.7	ext{ Hz}$ của bạn!).
 </p>
@@ -915,7 +935,8 @@ $$\Delta 	heta = rac{\Delta 	ext{pulse}_R - \Delta 	ext{pulse}_L}{4096 	imes L}
     <span class="box-title">🛑 2 nguy cơ gây treo cứng hệ thống:</span>
     <ul>
         <li><strong>Tranh chấp tài nguyên SPI (Re-entrancy):</strong> Vòng lặp chính đang kéo chân CS xuống mức LOW để đọc gói tin. Nếu ngắt Timer xảy ra đột ngột và cũng gọi `sendto()` qua SPI, chân CS và thanh ghi dữ liệu sẽ bị giẫm đạp lên nhau gây kẹt bus SPI.</li>
-        <li><strong>Deadlock với SysTick:</strong> Các hàm timeout của thư viện HAL dựa vào `HAL_GetTick()`. Nếu ngắt Timer chạy hàm truyền thông lâu và chặn mất ngắt SysTick, đồng hồ dừng lại và hàm truyền thông sẽ chờ vô hạn $ightarrow$ Treo chip!</li>
+        <li><strong>Deadlock với SysTick:</strong> Các hàm timeout của thư viện HAL dựa vào `HAL_GetTick()`. Nếu ngắt Timer chạy hàm truyền thông lâu và chặn mất ngắt SysTick, đồng hồ dừng lại và hàm truyền thông sẽ chờ vô hạn $
+ightarrow$ Treo chip!</li>
     </ul>
 </div>
 
@@ -1077,6 +1098,229 @@ header, vel_a, vel_b, pos_a, pos_b, err = struct.unpack('<HhhllH', data)</code><
 <!-- =========================================================== -->
 <!-- PHẦN 9: QUIZ                                               -->
 <!-- =========================================================== -->
+
+<!-- =========================================================== -->
+<!-- PHẦN 10: NHỮNG ĐIỀU NHẤT ĐỊNH PHẢI BIẾT SAU KHI HIỂU CODE   -->
+<!-- =========================================================== -->
+<div class="part-header-special" id="part10">
+    <h1>PHẦN 10: NHỮNG ĐIỀU NHẤT ĐỊNH PHẢI BIẾT SAU KHI HIỂU ĐƯỢC CODE NÀY</h1>
+    <p>Các nâng cấp kỹ thuật bắt buộc để đưa hệ thống từ "chạy thử nghiệm trong phòng lab" lên "vận hành tin cậy trong công nghiệp"</p>
+</div>
+
+<div class="analogy-box">
+    <span class="box-title">🚀 Từ "Chạy Được Code" Đến "Chế Tạo Sản Phẩm Công Nghiệp"</span>
+    <p>
+        Hiểu được luồng dữ liệu từ Python ➔ W5500 ➔ STM32 ➔ CANopen ZLAC8015D là một bước tiến lớn!
+        Tuy nhiên, để một cỗ xe AGV / AMR tự hành có thể vận hành an toàn 24/7 trong nhà máy thực tế mà không bị cháy động cơ, không giật nảy hỏng cơ khí, và kết nối trơn tru với ROS 2, có <strong>7 chủ đề chuyên sâu bắt buộc bạn phải biết</strong> dưới đây.
+    </p>
+</div>
+
+<h2 id="s10.1">10.1 Quản lý Gia tốc & Chống Giật Cơ Khí (Velocity Ramp Profile / S-Curve)</h2>
+
+<div class="skill-box">
+    <span class="box-title">⚠️ Thảm họa khi dùng lệnh vận tốc "Nhảy bậc" (Step Input)</span>
+    <p>
+        Trong file code hiện tại, khi bạn đặt <code>v = 0.5 m/s</code>, lệnh này được gửi thẳng xuống Driver trong vòng $20	ext{ ms}$. 
+        Về mặt toán học, đây là hàm bước nhảy (Step Function) với gia tốc tức thời $a = rac{\Delta v}{\Delta t} ightarrow \infty$ (vô cùng lớn!).
+        <br><strong>Hậu quả cơ học và điện tử:</strong>
+        <br>1. <strong>Trượt lốp (Wheel Slip):</strong> Lực kéo tức thời vượt quá lực ma sát nghỉ giữa lốp và mặt sàn $ightarrow$ Bánh xe quay tít tại chỗ $ightarrow$ Phá hỏng hoàn toàn độ chính xác của Odometry!
+        <br>2. <strong>Dòng điện vọt đỉnh (Inrush Current Spike):</strong> Động cơ đột ngột bị ép tăng tốc làm dòng điện vọt lên $15	ext{A} - 25	ext{A}$, gây sụt áp pin, làm reset vi điều khiển hoặc ngắt bảo vệ BMS.
+        <br>3. <strong>Hỏng hóc cơ khí (Mechanical Jerk):</strong> Các bánh răng trong hộp số bị va đập cực mạnh, đai truyền động bị giãn hoặc đứt sau vài tuần hoạt động.
+    </p>
+</div>
+
+<div class="step-card">
+    <span class="step-number">Giải pháp 1</span> <strong>Cài đặt Gia tốc phần cứng trên ZLAC8015D qua CANopen SDO:</strong>
+    <p>Driver ZLAC có tích hợp sẵn bộ tạo đường dốc gia tốc hình thang (Trapezoidal Ramp Generator) trong thanh ghi:</p>
+    <ul>
+        <li><code>0x6083:00</code> (Profile Acceleration): Gia tốc tăng tốc (Đơn vị: $1\,	ext{RPM/s}$). Ví dụ cài $500\,	ext{RPM/s}$.</li>
+        <li><code>0x6084:00</code> (Profile Deceleration): Gia tốc giảm tốc (Đơn vị: $1\,	ext{RPM/s}$). Ví dụ cài $1000\,	ext{RPM/s}$ để phanh nhanh hơn tăng tốc.</li>
+    </ul>
+    <pre><code>// Cấu hình trong hàm ZLAC_CONFIG của zlac_can.c:
+SDO_Write(1, 0x6083, 0x00, 500, 4); // Cài Accel = 500 RPM/s
+HAL_Delay(10);
+SDO_Write(1, 0x6084, 0x00, 1000, 4); // Cài Decel = 1000 RPM/s</code></pre>
+</div>
+
+<div class="step-card">
+    <span class="step-number">Giải pháp 2</span> <strong>Bộ lọc Ramp mềm (Software Velocity Ramp Limiter) trên STM32:</strong>
+    <pre><code>// Thuật toán làm mịn vận tốc trong vòng lặp 50Hz (dt = 0.02s):
+float current_v = 0.0f;
+float max_accel = 0.5f; // m/s^2
+
+float step = max_accel * 0.02f; // Tối đa tăng/giảm 0.01 m/s mỗi chu kỳ 20ms
+if (target_v > current_v + step) current_v += step;
+else if (target_v < current_v - step) current_v -= step;
+else current_v = target_v;</code></pre>
+</div>
+
+<h2 id="s10.2">10.2 Phát Hiện Kẹt Tải & Bảo Vệ Quá Dòng (Stall Detection & Torque Protection)</h2>
+
+<div class="skill-box">
+    <span class="box-title">🔥 Khi xe đâm vào vật cản hoặc bánh xe bị kẹt giẻ lau:</span>
+    <p>
+        Khi bánh xe bị chặn đứng mà PC vẫn ra lệnh chạy, bộ điều khiển PID nội bộ của Driver sẽ tăng tối đa dòng điện để cố quay động cơ.
+        Chỉ sau $2 - 3	ext{ giây}$, nhiệt lượng Joule ($P = I^2 R$) sẽ làm <strong>cháy cuộn dây Stator</strong> hoặc <strong>nổ dàn MOSFET công suất</strong>.
+    </p>
+    <p><strong>CƠ CHẾ PHÁT HIỆN KẸT TẢI CHUẨN CÔNG NGHIỆP:</strong>
+    <br>Đọc thanh ghi <strong>Dòng điện / Momen thực tế (Torque Actual Value)</strong> tại địa chỉ <code>0x6077:00</code> (kiểu <code>int16_t</code>, đơn vị: phần nghìn dòng định mức $0.1\%$).
+    </p>
+    <div class="step-card">
+        <span class="step-number">Logic</span> <strong>Quy tắc bảo vệ 3 điều kiện:</strong>
+        <br>1. Dòng điện thực tế $|I_{	ext{actual}}| > I_{	ext{threshold}}$ (ví dụ vượt quá $80\%$ dòng cực đại).
+        <br>2. Vận tốc thực tế phản hồi từ Encoder $|v_{	ext{actual}}| < 0.01	ext{ m/s}$ (Bánh xe hầu như không nhúc nhích).
+        <br>3. Hai điều kiện trên kéo dài liên tục <strong>vượt quá $200	ext{ ms}$</strong>.
+        <br>👉 <strong>HÀNH ĐỘNG:</strong> STM32 lập tức phát lệnh <code>ZLAC_Stop()</code>, cắt điện khẩn cấp và bắn mã lỗi <code>error_code = 0xE001</code> lên máy tính Ubuntu để dừng toàn bộ hệ thống!
+    </div>
+</div>
+
+<h2 id="s10.3">10.3 Phương Pháp Hiệu Chuẩn Cơ Khí Thực Tế (Wheel Calibration)</h2>
+
+<div class="important-note">
+    <span class="box-title">📐 Bán kính $R = 8.0	ext{ cm}$ và Khoảng cách $L = 40.0	ext{ cm}$ trên bản vẽ KHÔNG BAO GIỜ đúng 100%!</span>
+    <p>
+        Khi bạn lắp ráp xe thật:
+        <br>• Lốp cao su bị lún xuống khi có tải trọng (Robot nặng $20	ext{kg} ightarrow$ Bán kính hiệu dụng $R_{	ext{eff}}$ bị giảm còn $pprox 7.85	ext{ cm}$).
+        <br>• Điểm tiếp xúc của lốp với mặt sàn không phải là một điểm hình học lý thuyết mà là một vệt ma sát elip $ightarrow$ Khoảng cách hiệu dụng $L_{	ext{eff}}$ thực tế thường lớn hơn khoảng cách cơ khí từ $1\% - 3\%$.
+    </p>
+</div>
+
+<div class="step-card">
+    <span class="step-number">Quy trình 1</span> <strong>Hiệu chuẩn Bán kính bánh xe hiệu dụng ($R_{	ext{eff}}$):</strong>
+    <br>1. Dán một vạch băng dính trên sàn và trên mép bánh xe làm điểm mốc $0$.
+    <br>2. Dùng thước cuộn / thước đo laser đo chính xác quãng đường thẳng $S_{	ext{thực}} = 10.000	ext{ m}$.
+    <br>3. Cho xe chạy thẳng từ vạch xuất phát tới vạch đích. Đọc số xung Encoder hoặc quãng đường Odometry tính được $S_{	ext{odom}}$.
+    <br>4. Tính bán kính hiệu dụng mới:
+    $$R_{	ext{mới}} = R_{	ext{cũ}} 	imes rac{S_{	ext{thực}}}{S_{	ext{odom}}}$$
+</div>
+
+<div class="step-card">
+    <span class="step-number">Quy trình 2</span> <strong>Hiệu chuẩn Khoảng cách vệt bánh ($L_{	ext{eff}}$):</strong>
+    <br>1. Cho robot xoay tròn tại chỗ ($v = 0, \omega = 0.5	ext{ rad/s}$) đúng <strong>10 vòng nguyên vẹn ($3600^\circ$)</strong>, quan sát dấu mốc trên sàn.
+    <br>2. Xem góc quay tích lũy trên màn hình Odometry $	heta_{	ext{odom}}$ (Ví dụ Odometry báo $3510^\circ$, tức là thiếu $90^\circ$).
+    <br>3. Hiệu chuẩn lại khoảng cách hai bánh:
+    $$L_{	ext{mới}} = L_{	ext{cũ}} 	imes rac{	heta_{	ext{odom}}}{3600^\circ}$$
+    👉 Sau khi hiệu chuẩn 2 bước này, Odometry của xe sẽ chính xác gấp 10 lần!
+</div>
+
+<h2 id="s10.4">10.4 Cơ Chế Phanh Hãm Chủ Động (Quick Stop) vs Cắt Điện Tự Do (Coast Stop)</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Tiêu chí</th>
+            <th>Lệnh Cắt điện tự do (Coast / Disable)</th>
+            <th>Lệnh Phanh hãm khẩn cấp (Quick Stop) - KHUYÊN DÙNG KHI E-STOP</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Lệnh Controlword (`0x6040`)</strong></td>
+            <td>Ghi giá trị <code>0x0006</code> (Shutdown)</td>
+            <td>Ghi giá trị <code>0x0002</code> (Quick Stop)</td>
+        </tr>
+        <tr>
+            <td><strong>Trạng thái cầu H MOSFET</strong></td>
+            <td>Ngắt toàn bộ MOSFET, thả nổi các cuộn dây động cơ</td>
+            <td>Kích hoạt phanh điện động (Dynamic / Regenerative Braking)</td>
+        </tr>
+        <tr>
+            <td><strong>Hành vi vật lý của xe</strong></td>
+            <td>Xe trôi tự do theo quán tính. Nếu đang xuống dốc xe sẽ lao nhanh hơn!</td>
+            <td>Driver ghim cứng từ trường cuộn dây, xe khựng lại tức thì trong $< 50	ext{ ms}$</td>
+        </tr>
+        <tr>
+            <td><strong>Tình huống áp dụng</strong></td>
+            <td>Khi người dùng muốn tắt máy đẩy tay tự do</td>
+            <td>Khi ấn nút dừng khẩn cấp (E-Stop) hoặc phát hiện vật cản cự ly gần</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2 id="s10.5">10.5 Kiến Trúc Kết Nối Chuẩn ROS / ROS 2 (`ros2_control` & Topic Architecture)</h2>
+
+<p>
+    Từ script test Python <code>test_robot_telemetry.py</code> hiện tại, để đưa robot vào hệ sinh thái ROS 2 điều hướng tự hành (Nav2 + SLAM Toolbox), bạn chỉ cần bọc logic vào một ROS 2 Node chuẩn:
+</p>
+
+<div class="diagram-box">
+[ Nav2 / Teleop Node ] ──(Topic: /cmd_vel)──> [ ROS 2 Gateway Driver Node ] ──(UDP Port 8888)──> [ STM32 ]
+                                                              │
+[ SLAM / Robot State ] &lt;──(Topic: /odom)────── [ (Nhận gói 16B & Tính Odometry) ] &lt;──(UDP Port 8888)──┘
+[ TF Transform Tree  ] &lt;──(TF: odom ➔ base_footprint ➔ base_link)
+</div>
+
+<div class="step-card">
+    <span class="step-number">Code mẫu</span> <strong>Cấu trúc Node ROS 2 Python kết nối với Gateway STM32:</strong>
+    <pre><code>import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
+import socket, struct
+
+class RobotGatewayNode(Node):
+    def __init__(self):
+        super().__init__('robot_gateway_node')
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.settimeout(0.005)
+        self.stm32_addr = ('192.168.1.100', 8888)
+
+        # Lắng nghe lệnh vận tốc từ Nav2 / Bàn phím:
+        self.sub_cmd = self.create_subscription(Twist, '/cmd_vel', self.cmd_vel_callback, 10)
+        
+        # Xuất bản tọa độ Odometry:
+        self.pub_odom = self.create_publisher(Odometry, '/odom', 50)
+        self.timer = self.create_timer(0.02, self.telemetry_loop) # Chu kỳ 50Hz
+
+    def cmd_vel_callback(self, msg: Twist):
+        # Đóng gói và gửi xuống STM32:
+        payload = struct.pack('<BBff', 0xAA, 0x55, msg.linear.x, msg.angular.z)
+        crc = calculate_crc16(payload)
+        self.sock.sendto(payload + struct.pack('<H', crc), self.stm32_addr)
+
+    def telemetry_loop(self):
+        try:
+            data, _ = self.sock.recvfrom(1024)
+            # Giải mã 16 bytes từ STM32 ➔ Tính toán (x, y, theta) ➔ Publish lên /odom
+        except socket.timeout:
+            pass</code></pre>
+</div>
+
+<h2 id="s10.6">10.6 Tối Ưu Tốc Độ Cao: SPI DMA Burst Mode Cho W5500</h2>
+
+<div class="skill-box">
+    <span class="box-title">⚡ Đưa hiệu năng truyền thông lên tầm vi điều khiển cao cấp</span>
+    <p>
+        Hiện tại, STM32 gọi hàm <code>HAL_SPI_TransmitReceive(&hspi1, ..., 1, 100)</code>. Mặc dù chạy tốt ở 50Hz, nhưng CPU STM32 vẫn phải tốn chu kỳ chờ đợi từng byte SPI hoàn thành (Blocking).
+        <br>Khi bạn nâng cấp dự án thêm màn hình OLED, đo thêm 4 cảm biến siêu âm, đọc cảm biến IMU I2C và chạy thuật toán EKF: <strong>CPU STM32 cần được giải phóng hoàn toàn!</strong>
+    </p>
+    <p><strong>Cơ chế SPI DMA Burst Mode:</strong>
+    <br>1. Thư viện WIZnet có hàm đăng ký callback đọc/ghi theo mảng: <code>reg_wizchip_spiburst_cbfunc(W5500_ReadBurst, W5500_WriteBurst);</code>
+    <br>2. Sử dụng <strong>DMA1 Channel 2 (SPI1_RX)</strong> và <strong>DMA1 Channel 3 (SPI1_TX)</strong>.
+    <br>3. Khi cần đọc gói 16 bytes, STM32 chỉ kích hoạt cờ DMA trong $0.1\,\mu	ext{s}$ rồi lập tức quay sang làm việc khác. Bộ điều khiển DMA phần cứng tự động bơm 16 bytes từ W5500 vào RAM STM32 ở tốc độ tối đa $18	ext{ Mbps}$ mà <strong>không tốn một chu kỳ lệnh nào của CPU</strong>!
+    </p>
+</div>
+
+<h2 id="s10.7">10.7 An Ninh Mạng Điều Khiển & Cô Lập Subnet (Network Security)</h2>
+
+<div class="important-note">
+    <span class="box-title">🔒 Bảo vệ robot khỏi bị chiếm quyền điều khiển qua mạng:</span>
+    <p>
+        Giao thức UDP không có cơ chế đăng nhập hay mật khẩu. Bất kỳ ai cắm cáp LAN hoặc bắt được sóng Wi-Fi của robot đều có thể dùng script Python bắn gói tin rác lên Port 8888, làm xe chạy mất kiểm soát!
+    </p>
+    <p><strong>2 NGUYÊN TẮC BẢO VỆ BẮT BUỘC TRONG NHÀ MÁY:</strong>
+    <br>1. <strong>Cô lập Subnet / VLAN riêng:</strong> Cổng Ethernet của W5500 và máy tính điều khiển phải nằm trên một Switch mạng riêng biệt hoặc VLAN riêng (ví dụ Subnet `192.168.10.x`), tách biệt $100\%$ khỏi mạng Internet văn phòng.
+    <br>2. <strong>Cơ chế Whitelist IP trong code STM32:</strong> Trong hàm `recvfrom()`, STM32 lưu địa chỉ IP gửi đến. Ta kiểm tra:
+    <pre><code>// Chỉ chấp nhận lệnh nếu đến từ đúng IP cố định của máy tính Ubuntu:
+const uint8_t TRUSTED_PC_IP[4] = {192, 168, 1, 10};
+
+if (memcmp(remote_ip, TRUSTED_PC_IP, 4) != 0) {
+    // Vứt bỏ gói tin lập tức, không thực thi!
+    return; 
+}</code></pre>
+    </p>
+</div>
+
 <div class="part-header" id="part9">
     <h1>PHẦN 9: BỘ CÂU HỎI TRẮC NGHIỆM TỰ ĐÁNH GIÁ NĂNG LỰC (QUIZ)</h1>
     <p>Củng cố vững chắc kiến thức cốt lõi của dự án</p>
