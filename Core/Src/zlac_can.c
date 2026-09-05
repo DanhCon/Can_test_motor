@@ -526,9 +526,9 @@ bool ZLAC_IsReady(void)
  * ============================================================================ */
 
 /**
- * @brief Đặt vận tốc trực tiếp cho từng bánh xe (đơn vị: rpm × 10)
- * @param vel_a Vận tốc Motor A (rpm × 10)
- * @param vel_b Vận tốc Motor B (rpm × 10)
+ * @brief Đặt vận tốc trực tiếp cho từng bánh xe (đơn vị: 1 RPM)
+ * @param vel_a Vận tốc Motor A (RPM)
+ * @param vel_b Vận tốc Motor B (RPM)
  */
 void ZLAC_SetSpeed_raw(int16_t vel_a, int16_t vel_b)
 {
@@ -572,7 +572,7 @@ void ZLAC_SetSpeed_mps(float v, float omega)
     float rpm_L = (vL / ZLAC_WHEEL_RADIUS_M) * (60.0f / (2.0f * M_PI));
     float rpm_R = (vR / ZLAC_WHEEL_RADIUS_M) * (60.0f / (2.0f * M_PI));
 
-    /* Đổi từ RPM sang đơn vị driver ZLAC (đơn vị: rpm × 10) */
+    /* Đổi từ RPM sang đơn vị gửi driver ZLAC (đơn vị: 1 RPM) */
     int16_t zlac_L = (int16_t)roundf(rpm_L);
     int16_t zlac_R = (int16_t)roundf(rpm_R);
 

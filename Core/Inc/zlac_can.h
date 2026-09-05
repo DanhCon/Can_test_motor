@@ -106,7 +106,7 @@ bool ZLAC_IsReady(void);
 /** @brief Đặt vận tốc dài v (m/s) và vận tốc góc omega (rad/s) cho robot */
 void ZLAC_SetSpeed_mps(float v, float omega);
 
-/** @brief Đặt vận tốc trực tiếp cho từng bánh xe (đơn vị: rpm × 10) */
+/** @brief Đặt vận tốc trực tiếp cho từng bánh xe (đơn vị: 1 RPM) */
 void ZLAC_SetSpeed_raw(int16_t vel_a, int16_t vel_b);
 
 /** @brief Phanh dừng xe khẩn cấp (gửi lệnh vận tốc bằng 0) */
