@@ -2,6 +2,8 @@
 
 Dự án phát triển mạch điều khiển cầu nối trung gian (Hardware Gateway) thời gian thực giữa máy tính điều khiển cấp cao (Ubuntu / ROS / ROS 2) và Driver động cơ servo vi sai công nghiệp **ZLAC8015D** thông qua mạng Ethernet **W5500 (UDP)** và bus truyền thông công nghiệp **CANopen**.
 
+> 📖 **Dành cho AI Agent / Kỹ sư kế thừa dự án:** Xem chi tiết kiến trúc, các "hố sâu" đã xử lý và cẩm nang bắt bệnh tại: **[AGENT_HANDOVER_GUIDE.md](AGENT_HANDOVER_GUIDE.md)**.
+
 ---
 
 ## 📌 1. Kiến trúc hệ thống (System Architecture)
