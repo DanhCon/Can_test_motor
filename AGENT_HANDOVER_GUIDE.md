@@ -205,3 +205,6 @@ Can_test_motor/
 2. **Bảo toàn tính ổn định:** Giữ nguyên các hàm cốt lõi đã chạy ổn định (`SDO_Write 0x60FF`, `_TPDO1_Config 16-bit`, `Breakaway kick 0.04 m/s`, `Watchdog an toàn`).
 3. **Kiểm tra cú pháp trước khi commit:** Dùng `python -m py_compile` cho file Python và kiểm tra logic C cẩn thận trước khi hướng dẫn người dùng nhấn F7 trong Keil.
 4. **Đồng bộ hóa Git:** Luôn commit với thông điệp rõ ràng theo chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`) và push lên `origin/main`.
+5. **Quy tắc Duy trì & Đọc lại Tài liệu này (BẮT BUỘC):**
+   - **Đọc trước khi làm:** Mỗi khi bắt đầu một phiên làm việc hoặc chuẩn bị sửa đổi code, Agent **phải lướt qua file này trước** để nắm bắt nhanh các thông số chuẩn, các quyết định kiến trúc và các "hố sâu" cấm kỵ.
+   - **Cập nhật sau khi làm:** Bất kỳ khi nào có thay đổi về tính năng, thông số cơ khí, thêm mã lỗi, hoặc giải quyết một bài toán mới, Agent **phải cập nhật ngay vào file này** để tài liệu luôn phản ánh chính xác trạng thái mới nhất của hệ thống.
