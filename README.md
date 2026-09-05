@@ -69,15 +69,17 @@ Byte:   [0xAA] [0x55] [v (float)]   [omega (fl)]  [CRC-16 (uint16)]
 - **omega:** Vận tốc góc robot ($rad/s$, kiểu `float` 32-bit Little-endian).
 - **CRC-16:** Tính theo thuật toán CRC-16/MODBUS cho 10 bytes đầu tiên.
 
-### B. Gói tin Telemetry từ STM32 phản hồi lên PC (16 Bytes - UDP Port 8888)
+### B. Gói tin Telemetry từ STM32 phản hồi lên PC (22 Bytes - UDP Port 8888)
 ```
-Offset:  0      1      2..3          4..5          6..9         10..13       14..15
-Byte:   [0x55] [0xAA] [vel_a(i16)]  [vel_b(i16)]  [pos_a(i32)] [pos_b(i32)] [error(u16)]
+Offset:  0      1      2..3          4..5          6..9         10..13       14..15       16..17        18..19        20..21
+Byte:   [0x55] [0xAA] [vel_a(i16)]  [vel_b(i16)]  [pos_a(i32)] [pos_b(i32)] [error(u16)] [cur_a(i16)]  [cur_b(i16)]  [volt(u16)]
 ```
-- **Header:** `0x55 0xAA`
+- **Header:** `0x55 0xAA` (2 bytes nhận diện bắt đầu gói tin).
 - **vel_a, vel_b:** Vận tốc thực tế của Motor A và Motor B (đơn vị: $0.1\,\text{RPM}$, kiểu `int16_t`).
 - **pos_a, pos_b:** Giá trị xung Encoder tích lũy của Motor A và Motor B ($4096\,\text{xung/vòng}$, kiểu `int32_t`).
-- **error_code:** Mã lỗi từ Driver (`0` = Bình thường).
+- **error_code:** Mã lỗi hệ thống (kiểu `uint16_t`, `0` = Bình thường, `0xEEEE` = Kích hoạt bảo vệ kẹt tải hoặc quá dòng).
+- **cur_a, cur_b:** Dòng điện thực tế của Motor A và Motor B (đơn vị: $0.1\,\text{A}$, kiểu `int16_t`).
+- **volt:** Điện áp DC Bus / Pin (đơn vị: $0.1\,\text{V}$, kiểu `uint16_t`, đọc qua SDO `0x2035` mỗi 1 giây).
 
 ---
 
@@ -259,3 +261,129 @@ while (1)
 ### D. Hiệu quả đạt được:
 - **Độ ổn định tần số:** Triệt tiêu hoàn toàn Jitter và lỗi lượng tử hóa bước thời gian; tần số cố định chính xác $50.00\,	ext{Hz}$.
 - **Độ an toàn:** Không bao giờ xảy ra xung đột tài nguyên giữa các ngoại vi SPI và CAN, không gây deadlock với SysTick.
+
+
+---
+
+## 📚 7. Lý Thuyết Hệ Thống, Luồng Biến Đổi Dữ Liệu & Bảng Tra Cứu Hàm Toàn Diện
+
+### A. Tổng quát hệ thống đang làm gì?
+Hệ thống là một **Cầu nối phần cứng thời gian thực (Hard Real-Time Embedded Gateway)** giữa:
+- **Tầng điều khiển cấp cao (High-level Control):** Máy tính PC (Ubuntu / ROS / ROS 2 / Python) đảm nhiệm định vị, quy hoạch quỹ đạo và tính toán vận tốc xe $(v, \omega)$.
+- **Tầng truyền động chấp hành (Actuator Level):** Bộ điều khiển động cơ servo vi sai kép công nghiệp **ZLAC8015D** kéo 2 bánh xe AGV/AMR qua bus **CANopen 500kbps**.
+- **Tầng trung gian nhúng (Embedded Gateway):** Vi điều khiển **STM32F103C8T6** kết hợp chip Ethernet phần cứng **W5500**, chịu trách nhiệm:
+  1. Giải mã gói tin UDP, kiểm tra tính toàn vẹn CRC-16 Modbus.
+  2. Phân giải động học vi sai nghịch chuyển $(v, \omega)$ thành vòng tua 2 bánh $RPM_L, RPM_R$ (đơn vị: $1\,	ext{RPM}$).
+  3. Kích hoạt và điều khiển servo theo chuẩn quốc tế **CiA 402**.
+  4. Thu thập dữ liệu phản hồi (vận tốc, encoder, dòng điện, điện áp pin) qua TPDO và SDO với chu kỳ $20\,	ext{ms}$.
+  5. Bảo vệ an toàn đa tầng: Watchdog mất mạng 250ms, bảo vệ kẹt tải & quá dòng (ngắt tức thời $>12A$ hoặc $>6A$ kéo dài $>400ms$ gán mã lỗi `0xEEEE`, tự phục hồi sau 2s).
+  6. Phát Telemetry định kỳ $50\,	ext{Hz}$ ($20\,	ext{ms}$) chuẩn 22 bytes lên PC.
+
+---
+
+### B. Dữ liệu thông tin đi qua những thứ gì và biến đổi từ dạng gì sang dạng gì?
+
+```
+========================================================================================================
+                                     CHIỀU ĐIỀU KHIỂN (DOWNLINK)
+========================================================================================================
+[PC Python/ROS]             v, omega (float: m/s, rad/s)
+      │
+      ▼ (struct.pack '<BBff')
+[RAM PC / Socket]           Gói nhị phân 12B: [0xAA, 0x55, v, omega, CRC-16]
+      │
+      ▼ (Cáp RJ45)
+[Biến áp xung & W5500]      Tín hiệu vi sai 100BASE-TX TX+/TX- (±1V) ──> Byte trong W5500 RX Buffer
+      │
+      ▼ (SPI1 @ 4.5MHz)
+[STM32F103 RAM]             Đọc Burst SPI ──> Struct UDP_ControlPacket_t ──> Kiểm tra CRC-16
+      │
+      ▼ (Kinematics)
+[Toán học STM32]            v_L = v - omega*L/2, v_R = v + omega*L/2 ──> RPM_L, RPM_R (int16_t: 1 RPM)
+      │
+      ▼ (bxCAN & TJA1050)
+[Bus CAN 500kbps]           Frame CAN 2.0B COB-ID 0x601 (SDO) hoặc 0x201 (RPDO0) (V_CAN_H - V_CAN_L)
+      │
+      ▼ (CAN Controller)
+[Driver ZLAC8015D]          DSP giải mã SDO/PDO ──> Vòng lặp PID vận tốc 10kHz
+      │
+      ▼ (Cầu H MOSFET)
+[Động cơ BLDC/PMSM]         Nghịch lưu PWM 3 pha (U, V, W) 24V-48V ──> Từ trường quay kéo Rotor quay cơ học!
+
+========================================================================================================
+                                     CHIỀU PHẢN HỒI (UPLINK)
+========================================================================================================
+[Đĩa từ Encoder 4096 xung]  Chuyển động quay bánh xe ──> Xung vuông 2 pha A/B
+[Shunt & Phân áp Driver]    Dòng tải motor & Điện áp nguồn DC Bus
+      │
+      ▼ (Đo lường & CANopen)
+[Driver ZLAC8015D]          Đóng 4 Frame CAN:
+                            • TPDO0 (0x181): Vận tốc Motor A & B (đơn vị: 0.1 RPM)
+                            • TPDO1 (0x281): Dòng điện Motor A & B (đơn vị: 0.1 A)
+                            • TPDO2 (0x381): Tọa độ xung tích lũy Encoder (4096 xung/vòng)
+                            • SDO Resp (0x581): Điện áp DC Bus / Pin (đơn vị: 0.1 V, chu kỳ 1Hz)
+      │
+      ▼ (Bus CAN 2 dây xoắn)
+[Transceiver ──> PA11]      Tín hiệu điện vi sai ──> Ngắt phần cứng HAL_CAN_RxFifo0MsgPendingCallback()
+      │
+      ▼ (Xử lý STM32)
+[RAM STM32F103]             • Lưu vào zlac_fb
+                            • Kiểm tra kẹt tải / quá dòng: I > 12A hoặc (I > 6A & RPM < 3 quá 400ms) ──> 0xEEEE
+                            • Tích phân Odometry (x, y, theta)
+      │
+      ▼ (Đóng gói nhịp 20ms)
+[Struct 22 Bytes]           [0x55, 0xAA | vel_a, vel_b | pos_a, pos_b | error_code | cur_a, cur_b | volt]
+      │
+      ▼ (SPI1 ──> W5500)
+[Cáp Ethernet RJ45]         Bắn gói UDP qua Socket 0 Port 8888 ──> PC
+      │
+      ▼ (Python unpack)
+[Màn hình Terminal / ROS]   struct.unpack('<BBhhllHhhH') ──> Hiển thị RPM, Dòng A/B, Điện áp Pin, Cảnh báo 0xEEEE
+```
+
+---
+
+### C. Bảng tra cứu & Phân tích toàn bộ các hàm trong `main.c`
+
+| Tên hàm | Hoạt động khái quát | Tín hiệu đầu vào (Inputs) | Tín hiệu đầu ra (Outputs) | Tác động phần cứng |
+| :--- | :--- | :--- | :--- | :--- |
+| `main` | Hàm chính khởi chạy toàn bộ vi điều khiển, mạng W5500, CAN ZLAC và vòng lặp `while(1)`. | Không có (chạy từ Reset). | Không bao giờ return. | Điều phối toàn bộ phần cứng. |
+| `Calculate_CRC16` | Tính mã kiểm tra toàn vẹn CRC-16 Modbus (Đa thức `0xA001`, Init `0xFFFF`). | `data`: Con trỏ mảng byte.<br>`length`: Số byte (10 bytes). | `uint16_t`: Mã CRC 16-bit. | Tính toán CPU thuần túy. |
+| `W5500_Select` | Kéo chân CS xuống LOW để chọn chip W5500 mở phiên truyền SPI. | Không có. | `void`. | PA4 xuất mức LOW (`0V`). |
+| `W5500_Deselect` | Kéo chân CS lên HIGH để kết thúc phiên truyền SPI. | Không có. | `void`. | PA4 xuất mức HIGH (`3.3V`). |
+| `W5500_WriteByte` | Ghi 1 byte qua SPI1 song công (`HAL_SPI_TransmitReceive`). | `byte`: Byte dữ liệu cần ghi. | `void`. | Phát xung clock SCK (PA5) và dữ liệu MOSI (PA7). |
+| `W5500_ReadByte` | Đọc 1 byte từ W5500 bằng cách phát byte Dummy `0xFF`. | Không có. | `uint8_t`: Byte đọc từ MISO. | Lấy mẫu tín hiệu trên chân PA6 (MISO). |
+| `W5500_ReadBurst` | Đọc khối dữ liệu liên tục `len` bytes vào RAM STM32. | `pBuf`: Bộ đệm nhận.<br>`len`: Số lượng byte. | Ghi vào `pBuf`. | Đọc dòng dữ liệu burst tốc độ cao qua SPI1. |
+| `W5500_WriteBurst`| Ghi khối dữ liệu liên tục `len` bytes từ RAM xuống W5500. | `pBuf`: Bộ đệm nguồn.<br>`len`: Số lượng byte. | `void`. | Ghi dòng dữ liệu burst tốc độ cao qua SPI1. |
+| `SystemClock_Config` | Cấu hình dao động HSE 8MHz qua PLL x9 đạt 72MHz max speed. | Thạch anh 8MHz ngoài. | `void`. | Cấp xung toàn hệ thống. |
+| `Error_Handler` | Khóa CPU trong vòng lặp vô hạn khi có ngoại vi khởi tạo thất bại. | Không có. | Không return. | Tắt ngắt toàn cục (`__disable_irq`). |
+| `assert_failed` | Báo cáo tên file và dòng code bị lỗi assertion thư viện HAL. | `file`: Tên file.<br>`line`: Số dòng. | `void`. | Hỗ trợ debug phần mềm. |
+
+---
+
+### D. Bảng tra cứu & Phân tích toàn bộ các hàm trong `zlac_can.c`
+
+| Tên hàm | Hoạt động khái quát | Tín hiệu đầu vào (Inputs) | Tín hiệu đầu ra (Outputs) | CAN Frame / Tác động |
+| :--- | :--- | :--- | :--- | :--- |
+| `_CAN_Send` | Gửi 1 frame CAN 11-bit ID tiêu chuẩn thông qua Mailbox CAN1. | `std_id`: COB-ID.<br>`dlc`: Độ dài (0..8).<br>`data`: Con trỏ mảng byte. | `HAL_StatusTypeDef` (`HAL_OK` / `HAL_ERROR`). | Phát xung điện vi sai ra PA11/PA12 (500 kbps). |
+| `SDO_Write` | Ghi thông số vào Object Dictionary (giao thức SDO Expedited). | `node_id` (0x01).<br>`index` (16-bit).<br>`sub` (8-bit).<br>`value` (32-bit int).<br>`size_bytes` (1/2/4). | `void` (chờ 5ms). | CAN ID `0x600 + id` (DLC=8), Byte 0 = `0x2F/0x2B/0x23`. |
+| `SDO_Read_Request` | Yêu cầu Driver đọc giá trị 1 thanh ghi (đọc áp pin `0x2035:00`). | `node_id`, `index`, `sub`. | `void`. | CAN ID `0x600 + id` (DLC=8), Byte 0 = `0x40`. |
+| `NMT_Send` | Gửi lệnh quản lý mạng NMT chuyển trạng thái vận hành CANopen. | `node_id` (0=all, 1=node 1).<br>`cmd` (0x01, 0x80, 0x81). | `void`. | CAN ID `0x000` (DLC=2), Byte 0 = `cmd`, Byte 1 = `node_id`. |
+| `_RPDO0_Config` | Cấu hình nhận lệnh RPDO0: Ánh xạ Controlword `0x6040:00` vào `0x201`. | `id`: ID của Driver (0x01). | Ghi SDO cấu hình. | Ánh xạ nhận lệnh servo tức thời. |
+| `_RPDO1_Config` | Cấu hình nhận lệnh RPDO1: Ánh xạ Target Velocity `0x60FF:03` vào `0x301`. | `id`: ID của Driver (0x01). | Ghi SDO cấu hình. | Ánh xạ nhận lệnh vận tốc 2 bánh. |
+| `_TPDO0_Config` | Cấu hình phát TPDO0: Ánh xạ Actual Velocity `0x606C:01 & 02` về `0x181` (20ms). | `id`: ID của Driver (0x01). | Ghi SDO cấu hình. | Driver tự phát tốc độ 2 motor mỗi 20ms. |
+| `_TPDO1_Config` | Cấu hình phát TPDO1: Ánh xạ Actual Current `0x6077:03` về `0x281` (20ms). | `id`: ID của Driver (0x01). | Ghi SDO cấu hình. | Driver tự phát dòng điện 2 motor mỗi 20ms. |
+| `_TPDO2_Config` | Cấu hình phát TPDO2: Ánh xạ Actual Position `0x6064:01 & 02` về `0x381` (20ms). | `id`: ID của Driver (0x01). | Ghi SDO cấu hình. | Driver tự phát số xung Encoder mỗi 20ms. |
+| `_ProfileVelocity_Init` | Cài đặt Mode 3 (Profile Velocity) và gia tốc tăng/giảm tốc 200ms. | `id`: ID của Driver (0x01). | Ghi liên tiếp 5 lệnh SDO. | Động cơ tăng tốc êm, chống giật cơ khí. |
+| `_ZLAC_EnableServo` | Kích hoạt Servo CiA 402: Shutdown (0x06) &rarr; Switch On (0x07) &rarr; Enable (0x0F). | `id`: ID của Driver (0x01). | Phát 3 frame qua RPDO0. | Đóng relay cấp lực cho motor ("tách"). |
+| `ZLAC_CAN_Init` | Cấu hình bộ lọc CAN mở toàn bộ, kích hoạt ngắt FIFO0, bật CAN1. | Không có. | `void`. | Ngoại vi CAN chuyển sang Normal mode. |
+| `ZLAC_StateMachine` | Máy trạng thái phi chặn điều phối khởi động, vận hành và bảo vệ kẹt tải. | Gọi liên tục trong `while(1)`. | Cập nhật `zlac_state` và `error_code`. | Ngắt xung an toàn khi dòng cao, tự phục hồi sau 2s. |
+| `ZLAC_IsReady` | Kiểm tra Driver đã hoàn tất khởi động và sẵn sàng nhận lệnh chưa. | Không có. | `bool` (`true` nếu sẵn sàng). | Bảo đảm an toàn không gửi lệnh khi servo chưa bật. |
+| `ZLAC_SetSpeed_mps` | Hàm điều khiển chính: Động học vi sai, kẹp $V_{\max}$, gửi tốc độ 2 bánh. | `v` (m/s, float), `omega` (rad/s, float). | Gửi SDO `0x60FF` (đơn vị: **1 RPM**). | Điều khiển trực tiếp 2 bánh xe di chuyển. |
+| `ZLAC_SetSpeed_raw` | Đặt trực tiếp tốc độ vòng/phút cho từng motor bằng giá trị RPM nguyên bản. | `vel_a`, `vel_b` (đơn vị: 1 RPM). | Gửi 2 frame SDO `0x60FF`. | Chạy động cơ theo số vòng/phút chỉ định. |
+| `ZLAC_Stop` | Dừng khẩn cấp: Đặt tốc độ cả 2 motor bằng 0 RPM ngay lập tức. | Không có. | Gửi 0 RPM xuống 2 motor. | Triệt tiêu lực đẩy, dừng xe an toàn. |
+| `ZLAC_GetVelA_mps` | Đọc vận tốc thực tế của bánh xe Trái (A) theo mét/giây. | Không có. | `float` ($m/s$). | Phục vụ tính toán Odometry và PID ngoài. |
+| `ZLAC_GetVelB_mps` | Đọc vận tốc thực tế của bánh xe Phải (B) theo mét/giây. | Không có. | `float` ($m/s$). | Phục vụ tính toán Odometry và PID ngoài. |
+| `ZLAC_Odom_Update` | Cập nhật tích phân tọa độ Dead-Reckoning $(x, y, 	heta)$ sau khoảng $dt$ giây. | `dt`: Thời gian trôi qua (giây). | Cập nhật `zlac_odom` ($x, y, 	heta$). | Cung cấp tọa độ mặt phẳng 2D cho robot. |
+| `ZLAC_Odom_Reset` | Reset toàn bộ tọa độ Odometry về mốc gốc $(0, 0, 0)$. | Không có. | `x=0, y=0, theta=0`. | Thiết lập lại mốc tọa độ ban đầu. |
+| `HAL_CAN_RxFifo0MsgPendingCallback` | **Hàm ngắt phần cứng nhận CAN (ISR).** Phân loại CAN ID và trích xuất dữ liệu. | `hcan`: Con trỏ CAN HAL. | Cập nhật tức thì `zlac_fb`. | • 0x701: Bootup.<br>• 0x181: Vận tốc.<br>• 0x281: Dòng điện.<br>• 0x381: Encoder.<br>• 0x581: Điện áp Pin. |
