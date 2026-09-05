@@ -44,6 +44,13 @@
 #define ZLAC_MAX_SPEED_MPS    1.5f   /* Tốc độ tối đa robot (m/s) */
 #define ZLAC_MOTOR_B_REVERSE  1      /* Set = 1 nếu motor B lắp ngược chiều */
 
+/* Ngưỡng bảo vệ kẹt tải & quá dòng (Stall & Overcurrent Protection) */
+#define ZLAC_STALL_CURRENT_THRESHOLD   60     /* Dòng kẹt: 6.0A (đơn vị: 0.1A) */
+#define ZLAC_STALL_VELOCITY_THRESHOLD  30     /* Tốc độ quay gần đứng yên: 3.0 RPM (đơn vị: 0.1 RPM) */
+#define ZLAC_STALL_TIMEOUT_MS          400    /* Kẹt liên tục > 400ms -> ngắt bảo vệ */
+#define ZLAC_OVERCURRENT_THRESHOLD     120    /* Quá dòng nguy hiểm tức thời: 12.0A -> ngắt ngay */
+#define ZLAC_ERR_STALL_OVERCURRENT     0xEEEE /* Mã lỗi tự định nghĩa khi ngắt kẹt tải/quá dòng */
+
 /* ============================================================================
  * CẤU TRÚC DỮ LIỆU
  * ============================================================================ */
@@ -63,7 +70,10 @@ typedef struct {
     volatile int16_t  vel_b;       /**< Tốc độ motor B (rpm×10) */
     volatile int32_t  pos_a;       /**< Vị trí motor A (encoder counts) */
     volatile int32_t  pos_b;       /**< Vị trí motor B (encoder counts) */
-    volatile uint16_t error_code;  /**< Mã lỗi (0 = không lỗi) */
+    volatile int16_t  current_a;   /**< Dòng điện motor A (đơn vị: 0.1A) */
+    volatile int16_t  current_b;   /**< Dòng điện motor B (đơn vị: 0.1A) */
+    volatile uint16_t bus_voltage; /**< Điện áp DC Bus (đơn vị: 0.1V hoặc 0.01V) */
+    volatile uint16_t error_code;  /**< Mã lỗi (0 = không lỗi, 0xEEEE = quá dòng/kẹt tải) */
     volatile uint32_t hb_tick;     /**< Tick nhận Heartbeat cuối */
     volatile uint8_t  hb_received; /**< Flag: đã nhận Heartbeat */
 } ZLAC_Feedback_t;

@@ -208,6 +208,39 @@ static void _TPDO0_Config(uint8_t id)
     HAL_Delay(5);
 }
 /* ============================================================
+ * Cấu hình TPDO1: Driver tự động bắn DÒNG ĐIỆN / MOMENT (0x6077 sub 03) về 0x281
+ * Chu kỳ: 20ms (40 * 0.5ms = 20ms) đồng bộ 50Hz
+ * ============================================================ */
+static void _TPDO1_Config(uint8_t id)
+{
+    uint8_t d[8];
+    // 1. Xóa mapping cũ
+    d[0]=0x2F; d[1]=0x01; d[2]=0x1A; d[3]=0x00; d[4]=0x00; d[5]=0; d[6]=0; d[7]=0;
+    _CAN_Send(0x600 + id, 8, d);
+    HAL_Delay(5);
+
+    // 2. Map 0x6077 sub 03 (32 bit: chứa Torque/Dòng điện cả 2 motor A và B)
+    d[0]=0x23; d[1]=0x01; d[2]=0x1A; d[3]=0x01;
+    d[4]=0x20; d[5]=0x03; d[6]=0x77; d[7]=0x60;
+    _CAN_Send(0x600 + id, 8, d);
+    HAL_Delay(5);
+
+    // 3. Cài chế độ Timer (0xFF)
+    d[0]=0x2F; d[1]=0x01; d[2]=0x18; d[3]=0x02; d[4]=0xFF; d[5]=0; d[6]=0; d[7]=0;
+    _CAN_Send(0x600 + id, 8, d);
+    HAL_Delay(5);
+
+    // 4. Chu kỳ gửi: 20ms (40 * 0.5ms = 20ms)
+    d[0]=0x2B; d[1]=0x01; d[2]=0x18; d[3]=0x05; d[4]=0x28; d[5]=0x00; d[6]=0; d[7]=0;
+    _CAN_Send(0x600 + id, 8, d);
+    HAL_Delay(5);
+
+    // 5. Kích hoạt 1 object mapping
+    d[0]=0x2F; d[1]=0x01; d[2]=0x1A; d[3]=0x00; d[4]=0x01; d[5]=0; d[6]=0; d[7]=0;
+    _CAN_Send(0x600 + id, 8, d);
+    HAL_Delay(5);
+}
+/* ============================================================
  * Cấu hình TPDO2: Driver tự động bắn VỊ TRÍ ENCODER (0x6064) về 0x381
  * Chu kỳ: 50ms (Timer trigger)
  * ============================================================ */
@@ -251,15 +284,15 @@ static void _ProfileVelocity_Init(uint8_t id)
     HAL_Delay(5);
 
     /* Gia tốc Motor A và B (0x6083 sub 01 và 02) */
-    SDO_Write(id, 0x6083, 0x01, 100, 4);   /* Motor A */
+    SDO_Write(id, 0x6083, 0x01, 400, 4);   /* Motor A */
     HAL_Delay(5);
-    SDO_Write(id, 0x6083, 0x02, 100, 4);   /* Motor B */
+    SDO_Write(id, 0x6083, 0x02, 400, 4);   /* Motor B */
     HAL_Delay(5);
 
     /* Giảm tốc (0x6084) */
-    SDO_Write(id, 0x6084, 0x01, 100, 4);
+    SDO_Write(id, 0x6084, 0x01, 200, 4);
     HAL_Delay(5);
-    SDO_Write(id, 0x6084, 0x02, 100, 4);
+    SDO_Write(id, 0x6084, 0x02, 200, 4);
     HAL_Delay(5);
 }
 
@@ -346,8 +379,9 @@ void ZLAC_StateMachine(void)
         case ZLAC_CONFIG:
             _RPDO0_Config(id);            /* ~15ms */
             _RPDO1_Config(id);            /* ~15ms */
-				    _TPDO0_Config(id);            /* <--- [THÊM DÒNG NÀY] Bật tự động gửi Vận tốc */
-            _TPDO2_Config(id);            /* <--- [THÊM DÒNG NÀY] Bật tự động gửi Vị trí */
+            _TPDO0_Config(id);            /* Bật tự động gửi Vận tốc (0x181) */
+            _TPDO1_Config(id);            /* Bật tự động gửi Dòng điện (0x281) */
+            _TPDO2_Config(id);            /* Bật tự động gửi Vị trí (0x381) */
             _ProfileVelocity_Init(id);    /* ~25ms */
             NMT_Send(id, 0x01);           /* Start node */
             HAL_Delay(50);
@@ -368,32 +402,71 @@ void ZLAC_StateMachine(void)
          * Đang chạy
          * ───────────────────────────────────────────── */
         case ZLAC_READY:
-            /* Kiểm tra lỗi */
+            /* 1. Kiểm tra mã lỗi phần cứng từ driver (TPDO3 0x481) */
             if (zlac_fb.error_code != 0)
             {
                 ZLAC_Stop();
                 zlac_state = ZLAC_FAULT;
                 state_entry_tick = now;
+                break;
             }
-            /* Kiểm tra Heartbeat timeout (1.5 giây) */
-//            if ((now - zlac_fb.hb_tick) > 1500)
-//            {
-//                ZLAC_Stop();
-//                zlac_state = ZLAC_WAIT_HB;
-//                state_entry_tick = now;
-//            }
+
+            /* 2. BẢO VỆ KẸT TẢI & QUÁ DÒNG (Stall & Overcurrent Protection) */
+            {
+                static uint32_t stall_timer = 0;
+                int16_t abs_i_a = (zlac_fb.current_a < 0) ? -zlac_fb.current_a : zlac_fb.current_a;
+                int16_t abs_i_b = (zlac_fb.current_b < 0) ? -zlac_fb.current_b : zlac_fb.current_b;
+                int16_t abs_v_a = (zlac_fb.vel_a < 0) ? -zlac_fb.vel_a : zlac_fb.vel_a;
+                int16_t abs_v_b = (zlac_fb.vel_b < 0) ? -zlac_fb.vel_b : zlac_fb.vel_b;
+
+                /* Quá dòng nguy hiểm tức thời (> 12.0A) -> Ngắt xung lập tức */
+                if (abs_i_a > ZLAC_OVERCURRENT_THRESHOLD || abs_i_b > ZLAC_OVERCURRENT_THRESHOLD)
+                {
+                    ZLAC_Stop();
+                    zlac_fb.error_code = ZLAC_ERR_STALL_OVERCURRENT;
+                    zlac_state = ZLAC_FAULT;
+                    state_entry_tick = now;
+                    stall_timer = 0;
+                    break;
+                }
+
+                /* Kẹt cơ khí: Dòng cao (> 6.0A) nhưng bánh đứng yên (< 3.0 RPM) */
+                if ((abs_i_a > ZLAC_STALL_CURRENT_THRESHOLD && abs_v_a < ZLAC_STALL_VELOCITY_THRESHOLD) ||
+                    (abs_i_b > ZLAC_STALL_CURRENT_THRESHOLD && abs_v_b < ZLAC_STALL_VELOCITY_THRESHOLD))
+                {
+                    if (stall_timer == 0)
+                    {
+                        stall_timer = now;
+                    }
+                    else if ((now - stall_timer) >= ZLAC_STALL_TIMEOUT_MS)
+                    {
+                        /* Kẹt liên tục quá 400ms -> Ngắt động cơ an toàn */
+                        ZLAC_Stop();
+                        zlac_fb.error_code = ZLAC_ERR_STALL_OVERCURRENT;
+                        zlac_state = ZLAC_FAULT;
+                        state_entry_tick = now;
+                        stall_timer = 0;
+                        break;
+                    }
+                }
+                else
+                {
+                    stall_timer = 0; /* Reset timer khi dòng hoặc vận tốc bình thường */
+                }
+            }
             break;
 
         /* ─────────────────────────────────────────────
          * Xử lý lỗi
          * ───────────────────────────────────────────── */
         case ZLAC_FAULT:
-            /* Chờ 1 giây rồi thử reset */
-            if ((now - state_entry_tick) > 1000)
+            /* Chờ 2 giây rồi thử xả lỗi và kích hoạt lại nếu đã hết kẹt */
+            if ((now - state_entry_tick) > 2000)
             {
                 uint8_t d[2] = {0x80, 0x00};  /* Fault Reset */
                 _CAN_Send(0x200 + id, 2, d);
                 HAL_Delay(100);
+                zlac_fb.error_code = 0;        /* Xóa cờ lỗi */
                 zlac_state = ZLAC_ENABLING;    /* Thử Enable lại */
                 state_entry_tick = HAL_GetTick();
             }
@@ -581,10 +654,15 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan_ptr)
         zlac_fb.vel_a = (int16_t)RD_I32(rx_buf);      /* Byte 0..3: Vận tốc Motor A */
         zlac_fb.vel_b = (int16_t)RD_I32(rx_buf + 4);  /* Byte 4..7: Vận tốc Motor B */
     }
-    else if (id == (0x280 + ZLAC_NODE_ID))  /* TPDO1 (0x281): Torque Actual */
+    else if (id == (0x280 + ZLAC_NODE_ID))  /* TPDO1 (0x281): DÒNG ĐIỆN / MOMENT THỰC TẾ A + B */
     {
-        /* int16 × moment value */
-        (void)RD_I16(rx_buf);  /* Bỏ qua torque hoặc lưu nếu cần */
+        /*
+         * Map 0x6077 sub 03 (32 bit: chứa cả 2 motor)
+         * Byte 0..1: Dòng điện Motor A (int16, đơn vị: 0.1A)
+         * Byte 2..3: Dòng điện Motor B (int16, đơn vị: 0.1A)
+         */
+        zlac_fb.current_a = RD_I16(rx_buf);
+        zlac_fb.current_b = RD_I16(rx_buf + 2);
     }
     else if (id == (0x380 + ZLAC_NODE_ID))  /* TPDO2 (0x381): VỊ TRÍ ENCODER A + B */
     {
@@ -624,6 +702,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan_ptr)
             
             if (sub == 0x01) zlac_fb.pos_a = enc_val; // Lưu Encoder bánh trái
             if (sub == 0x02) zlac_fb.pos_b = enc_val; // Lưu Encoder bánh phải
+        }
+        else if (idx == 0x2035) // Mã Index 0x2035: Điện áp DC Bus
+        {
+            zlac_fb.bus_voltage = (uint16_t)rx_buf[4] | ((uint16_t)rx_buf[5] << 8);
         }
     }
 }
