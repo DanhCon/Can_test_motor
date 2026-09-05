@@ -1,19 +1,10 @@
 import os
-from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    # Đường dẫn tới file config/joy.yaml trong package project_1
-    try:
-        pkg_dir = get_package_share_directory('project_1')
-        joy_config = os.path.join(pkg_dir, 'config', 'joy.yaml')
-    except Exception:
-        # Đường dẫn dự phòng cục bộ nếu chưa cài đặt share
-        joy_config = os.path.join(os.getcwd(), 'src', 'project_1', 'config', 'joy.yaml')
-
     return LaunchDescription([
-        # 1. Node đọc phần cứng tay cầm USB / Bluetooth
+        # 1. Đọc phần cứng tay cầm USB / Bluetooth
         Node(
             package='joy',
             executable='joy_node',
@@ -26,16 +17,29 @@ def generate_launch_description():
             }]
         ),
 
-        # 2. Node chuẩn teleop_twist_joy nạp trực tiếp file config/joy.yaml
+        # 2. Node teleop nội bộ của project_1 (Không lo bị mất khi restart Docker)
+        # Gộp cả Tiến/Lùi và Bẻ lái vào Cần Trái, Nút kích hoạt L1 (4)
         Node(
-            package='teleop_twist_joy',
-            executable='teleop_node',
-            name='teleop_twist_joy_node',
+            package='project_1',
+            executable='teleop_joy.py',
+            name='teleop_joy_node',
             output='screen',
-            parameters=[joy_config]
+            parameters=[{
+                'axis_linear': 1,            # Cần gạt TRÁI (Lên/Xuống): Tiến / Lùi
+                'axis_angular': 0,           # Cần gạt TRÁI (Trái/Phải): Quay xe (Gộp chung cần trái)
+                'scale_linear_normal': 0.8,  # Tốc độ tiến thẳng tối đa: 0.8 m/s
+                'scale_angular_normal': 0.6, # Tốc độ quay vòng tối đa: 0.6 rad/s
+                'scale_linear_turbo': 1.2,   # Tốc độ khi giữ Turbo (R1): 1.2 m/s
+                'scale_angular_turbo': 1.0,  # Tốc độ quay Turbo: 1.0 rad/s
+                'enable_deadman': True,      # Bắt buộc bấm cò mới chạy
+                'btn_deadman': 4,            # Nút kích hoạt: L1 / LB
+                'btn_turbo': 5,              # Nút Turbo: R1 / RB
+                'btn_estop': 1,              # Nút dừng khẩn: B / Tròn
+                'btn_reset_odom': 3,         # Nút reset Odometry: Y / Tam giác
+            }]
         ),
 
-        # 3. Node Gateway UDP điều khiển động cơ qua STM32 + W5500
+        # 3. Node Gateway UDP điều khiển động cơ qua STM32 + W5500 & tính Odometry
         Node(
             package='project_1',
             executable='zlac_udp_odom_node.py',
