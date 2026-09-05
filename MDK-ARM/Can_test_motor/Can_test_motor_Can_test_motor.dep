@@ -1,8 +1,8 @@
 Dependencies for Project 'Can_test_motor', Target 'Can_test_motor': (DO NOT MODIFY !)
 CompilerVersion: 6220000::V6.22::ARMCLANG
 F (startup_stm32f103xb.s)(0x6A9AABE0)(--target=arm-arm-none-eabi -mcpu=cortex-m3 -masm=auto  -Wa,armasm,--diag_suppress=A1950W -c-gdwarf-4 -Wa,armasm,--pd,"__EVAL SETA 1"-I./RTE/_Can_test_motor-IC:/Users/hocho/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include-IC:/Users/hocho/AppData/Local/Arm/Packs/Keil/STM32F1xx_DFP/2.4.1/Device/Include-Wa,armasm,--pd,"__UVISION_VERSION SETA 540" -Wa,armasm,--pd,"STM32F10X_MD SETA 1" -Wa,armasm,--pd,"_RTE_ SETA 1"-o can_test_motor/startup_stm32f103xb.o)
-F (..\Core\Src\zlac_can.c)(0x6A9B9947)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m3 -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -gdwarf-4 -O3 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../Core/Inc -I ../Drivers/STM32F1xx_HAL_Driver/Inc -I ../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I ../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I ../Drivers/CMSIS/Include -I ../User -I ../Core/Src -I ../Drivers/ioLibrary_Driver/Ethernet-I./RTE/_Can_test_motor-IC:/Users/hocho/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include-IC:/Users/hocho/AppData/Local/Arm/Packs/Keil/STM32F1xx_DFP/2.4.1/Device/Include-D__UVISION_VERSION="540" -DSTM32F10X_MD -D_RTE_ -DUSE_HAL_DRIVER -DSTM32F103xB-o can_test_motor/zlac_can.o -MMD)
-I (..\Core\Inc\zlac_can.h)(0x6A9B97EE)
+F (..\Core\Src\zlac_can.c)(0x6A9BA636)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m3 -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -gdwarf-4 -O3 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../Core/Inc -I ../Drivers/STM32F1xx_HAL_Driver/Inc -I ../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I ../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I ../Drivers/CMSIS/Include -I ../User -I ../Core/Src -I ../Drivers/ioLibrary_Driver/Ethernet-I./RTE/_Can_test_motor-IC:/Users/hocho/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include-IC:/Users/hocho/AppData/Local/Arm/Packs/Keil/STM32F1xx_DFP/2.4.1/Device/Include-D__UVISION_VERSION="540" -DSTM32F10X_MD -D_RTE_ -DUSE_HAL_DRIVER -DSTM32F103xB-o can_test_motor/zlac_can.o -MMD)
+I (..\Core\Inc\zlac_can.h)(0x6A9BA60F)
 I (..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal.h)(0x6A08E106)
 I (..\Core\Inc\stm32f1xx_hal_conf.h)(0x6A9A97FD)
 I (..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_rcc.h)(0x6A08E106)
@@ -27,8 +27,8 @@ I (..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_pwr.h)(0x6A08E106)
 I (..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal_spi.h)(0x6A08E106)
 I (..\Core\Inc\can.h)(0x6A378498)
 I (..\Core\Inc\main.h)(0x6A9AABDF)
-F (..\Core\Inc\zlac_can.h)(0x6A9B97EE)()
-F (../Core/Src/main.c)(0x6A9B9955)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m3 -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -gdwarf-4 -O3 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../Core/Inc -I ../Drivers/STM32F1xx_HAL_Driver/Inc -I ../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I ../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I ../Drivers/CMSIS/Include -I ../User -I ../Core/Src -I ../Drivers/ioLibrary_Driver/Ethernet-I./RTE/_Can_test_motor-IC:/Users/hocho/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include-IC:/Users/hocho/AppData/Local/Arm/Packs/Keil/STM32F1xx_DFP/2.4.1/Device/Include-D__UVISION_VERSION="540" -DSTM32F10X_MD -D_RTE_ -DUSE_HAL_DRIVER -DSTM32F103xB-o can_test_motor/main.o -MMD)
+F (..\Core\Inc\zlac_can.h)(0x6A9BA60F)()
+F (../Core/Src/main.c)(0x6A9BA64B)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m3 -c-fno-rtti -funsigned-char -fshort-enums -fshort-wchar-D__EVAL -gdwarf-4 -O3 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../Core/Inc -I ../Drivers/STM32F1xx_HAL_Driver/Inc -I ../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I ../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I ../Drivers/CMSIS/Include -I ../User -I ../Core/Src -I ../Drivers/ioLibrary_Driver/Ethernet-I./RTE/_Can_test_motor-IC:/Users/hocho/AppData/Local/Arm/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include-IC:/Users/hocho/AppData/Local/Arm/Packs/Keil/STM32F1xx_DFP/2.4.1/Device/Include-D__UVISION_VERSION="540" -DSTM32F10X_MD -D_RTE_ -DUSE_HAL_DRIVER -DSTM32F103xB-o can_test_motor/main.o -MMD)
 I (..\Core\Inc\main.h)(0x6A9AABDF)
 I (..\Drivers\STM32F1xx_HAL_Driver\Inc\stm32f1xx_hal.h)(0x6A08E106)
 I (..\Core\Inc\stm32f1xx_hal_conf.h)(0x6A9A97FD)
@@ -57,7 +57,7 @@ I (..\Core\Inc\dma.h)(0x6A9A97FC)
 I (..\Core\Inc\i2c.h)(0x6A399507)
 I (..\Core\Inc\spi.h)(0x6A9A64B4)
 I (..\Core\Inc\gpio.h)(0x6A378498)
-I (..\Core\Inc\zlac_can.h)(0x6A9B97EE)
+I (..\Core\Inc\zlac_can.h)(0x6A9BA60F)
 I (..\Drivers\ioLibrary_Driver\Ethernet\wizchip_conf.h)(0x6A9A9A04)
 I (..\Drivers\ioLibrary_Driver\Ethernet\W5500\w5500.h)(0x6A9A9815)
 I (..\Drivers\ioLibrary_Driver\Ethernet\socket.h)(0x6A9A9815)

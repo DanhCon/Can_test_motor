@@ -25,8 +25,8 @@
  * PHẦN 1: CẤU HÌNH PHẦN CỨNG & THÔNG SỐ CƠ KHÍ ROBOT
  * ============================================================================ */
 #define ZLAC_NODE_ID              0x01   /* Node ID của ZLAC8015D (cài đặt bằng công tắc DIP) */
-#define ZLAC_WHEEL_RADIUS_M       0.08f  /* Bán kính bánh xe: 0.08m (80mm) */
-#define ZLAC_WHEELBASE_M          0.35f  /* Khoảng cách giữa 2 tâm bánh xe: 0.35m (350mm) */
+#define ZLAC_WHEEL_RADIUS_M       0.0535f /* Bán kính bánh xe: 0.0535m (53.5mm) */
+#define ZLAC_WHEELBASE_M          0.45f   /* Khoảng cách giữa 2 tâm bánh xe: 0.45m (450mm) */
 #define ZLAC_MAX_SPEED_MPS        1.5f   /* Vận tốc dài tối đa cho phép của robot (m/s) */
 #define ZLAC_MOTOR_B_REVERSE      1      /* Đặt = 1 nếu motor B lắp đối xứng ngược chiều quay */
 

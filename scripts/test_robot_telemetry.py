@@ -16,7 +16,8 @@ STM32_PORT = 8888
 LOCAL_PORT = 8888
 
 # --- THÔNG SỐ CƠ KHÍ ROBOT ---
-WHEEL_RADIUS_M = 0.08      # Bán kính bánh xe: 0.08 m (8 cm)
+WHEEL_RADIUS_M = 0.0535    # Bán kính bánh xe: 0.0535 m (53.5 mm)
+WHEELBASE_M = 0.45         # Khoảng cách giữa 2 tâm bánh xe: 0.45 m (450 mm)
 ENCODER_CPR = 4096         # Số xung trên 1 vòng quay bánh xe
 
 # Hàm tính CRC-16/MODBUS (Đồng bộ với STM32)
