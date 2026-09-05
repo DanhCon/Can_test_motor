@@ -124,6 +124,12 @@ class ZLAC8015DUDPOdomNode(Node):
         self.last_odom_time = self.get_clock().now()
         self.last_cmd_vel_time = self.get_clock().now()
 
+        # Giám sát Watchdog Ethernet (mất tín hiệu UDP từ STM32)
+        self.last_udp_rx_time = self.get_clock().now()
+        self.ethernet_connected = True
+        self.current_a = 0.0
+        self.current_b = 0.0
+
         # Khóa an toàn đa luồng (Thread-safe)
         self.odom_lock = threading.Lock()
         self.is_running = True
@@ -221,7 +227,22 @@ class ZLAC8015DUDPOdomNode(Node):
             self.target_linear = 0.0
             self.target_angular = 0.0
 
-        # 2. Bộ lọc gia tốc làm mượt (Velocity Smoother)
+        # 2. Watchdog giám sát mất kết nối Ethernet tới STM32 (quá 1.0s không nhận được Telemetry)
+        time_since_last_rx = (now - self.last_udp_rx_time).nanoseconds / 1e9
+        if time_since_last_rx > 1.0:
+            if self.ethernet_connected:
+                self.get_logger().error(
+                    f"CẢNH BÁO: MẤT KẾT NỐI ETHERNET TỚI STM32! (Không nhận được phản hồi UDP trong {time_since_last_rx:.1f}s)",
+                    throttle_duration_sec=2.0
+                )
+                self.ethernet_connected = False
+            else:
+                self.get_logger().error(
+                    f"CẢNH BÁO: MẤT KẾT NỐI ETHERNET TỚI STM32! (Không nhận được phản hồi UDP trong {time_since_last_rx:.1f}s)",
+                    throttle_duration_sec=2.0
+                )
+
+        # 3. Bộ lọc gia tốc làm mượt (Velocity Smoother)
         step_lin = self.linear_accel * dt
         step_ang = self.angular_accel * dt
 
@@ -241,13 +262,13 @@ class ZLAC8015DUDPOdomNode(Node):
         self.current_linear = move_towards(self.current_linear, self.target_linear, step_lin, self.min_breakaway_vel)
         self.current_angular = move_towards(self.current_angular, self.target_angular, step_ang, 0.0)
 
-        # 3. Đóng gói 12 bytes nhị phân gửi xuống STM32:
+        # 4. Đóng gói 12 bytes nhị phân gửi xuống STM32:
         # Format: Header [0xAA, 0x55] (2B) + float v (4B) + float omega (4B) + uint16 CRC (2B)
         payload = struct.pack('<BBff', 0xAA, 0x55, float(self.current_linear), float(self.current_angular))
         crc = calculate_crc16(payload)
         packet = payload + struct.pack('<H', crc)
 
-        # 4. Gửi UDP tới STM32 Gateway
+        # 5. Gửi UDP tới STM32 Gateway
         try:
             self.sock.sendto(packet, (self.stm32_ip, self.stm32_port))
         except Exception as e:
@@ -276,6 +297,16 @@ class ZLAC8015DUDPOdomNode(Node):
                     continue
 
                 now = self.get_clock().now()
+
+                # Cập nhật thời gian nhận gói UDP thành công & thông báo phục hồi nếu vừa mất mạng
+                if not self.ethernet_connected:
+                    self.get_logger().info("ĐÃ KHÔI PHỤC KẾT NỐI ETHERNET TỚI STM32.")
+                    self.ethernet_connected = True
+                self.last_udp_rx_time = now
+
+                # Cập nhật giá trị dòng điện thực tế nội bộ (đơn vị: Ampe)
+                self.current_a = cur_a_raw / 10.0
+                self.current_b = cur_b_raw / 10.0
 
                 # Cảnh báo lỗi driver nếu có
                 if err_code != 0:

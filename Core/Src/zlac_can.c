@@ -232,36 +232,41 @@ static void _TPDO0_Config(uint8_t id)
 }
 
 /**
- * @brief Cấu hình TPDO1: Driver tự động gửi DÒNG ĐIỆN / MOMENT THỰC TẾ (0x6077 sub 03)
+ * @brief Cấu hình TPDO1: Driver tự động gửi DÒNG ĐIỆN / MOMENT THỰC TẾ (0x6077 sub 01 & 02)
  * COB-ID: 0x280 + Node_ID (0x281) | Chu kỳ: 20ms (40 * 0.5ms = 20ms)
- * Object 0x6077 sub 03 (32-bit): Byte 0-1 là Motor A, Byte 2-3 là Motor B (đơn vị: 0.1A)
+ * Byte 0-1 là Motor A (16-bit), Byte 2-3 là Motor B (16-bit) (đơn vị: 0.1A)
  */
 static void _TPDO1_Config(uint8_t id)
 {
     uint8_t d[8];
 
-    /* 1. Xóa mapping cũ */
+    /* 1. Xóa mapping cũ: 0x1A01 sub 00 = 0 */
     d[0]=0x2F; d[1]=0x01; d[2]=0x1A; d[3]=0x00; d[4]=0x00; d[5]=0; d[6]=0; d[7]=0;
     _CAN_Send(0x600 + id, 8, d);
     HAL_Delay(5);
 
-    /* 2. Map 0x6077 sub 03 (32-bit chứa dòng cả 2 motor) */
-    d[0]=0x23; d[1]=0x01; d[2]=0x1A; d[3]=0x01; d[4]=0x20; d[5]=0x03; d[6]=0x77; d[7]=0x60;
+    /* 2. Map 0x6077 sub 01 (Dòng Motor A - 16 bit, len 0x10) */
+    d[0]=0x23; d[1]=0x01; d[2]=0x1A; d[3]=0x01; d[4]=0x10; d[5]=0x01; d[6]=0x77; d[7]=0x60;
     _CAN_Send(0x600 + id, 8, d);
     HAL_Delay(5);
 
-    /* 3. Cài chế độ Timer (0xFF) */
+    /* 3. Map 0x6077 sub 02 (Dòng Motor B - 16 bit, len 0x10) */
+    d[0]=0x23; d[1]=0x01; d[2]=0x1A; d[3]=0x02; d[4]=0x10; d[5]=0x02; d[6]=0x77; d[7]=0x60;
+    _CAN_Send(0x600 + id, 8, d);
+    HAL_Delay(5);
+
+    /* 4. Cài chế độ Timer (0xFF): 0x1801 sub 02 = 0xFF */
     d[0]=0x2F; d[1]=0x01; d[2]=0x18; d[3]=0x02; d[4]=0xFF; d[5]=0; d[6]=0; d[7]=0;
     _CAN_Send(0x600 + id, 8, d);
     HAL_Delay(5);
 
-    /* 4. Chu kỳ gửi: 20ms (40 * 0.5ms = 0x28) */
+    /* 5. Chu kỳ gửi: 20ms (40 * 0.5ms = 0x28): 0x1801 sub 05 = 0x28 */
     d[0]=0x2B; d[1]=0x01; d[2]=0x18; d[3]=0x05; d[4]=0x28; d[5]=0x00; d[6]=0; d[7]=0;
     _CAN_Send(0x600 + id, 8, d);
     HAL_Delay(5);
 
-    /* 5. Kích hoạt 1 object mapping */
-    d[0]=0x2F; d[1]=0x01; d[2]=0x1A; d[3]=0x00; d[4]=0x01; d[5]=0; d[6]=0; d[7]=0;
+    /* 6. Kích hoạt 2 object mapping: 0x1A01 sub 00 = 2 */
+    d[0]=0x2F; d[1]=0x01; d[2]=0x1A; d[3]=0x00; d[4]=0x02; d[5]=0; d[6]=0; d[7]=0;
     _CAN_Send(0x600 + id, 8, d);
     HAL_Delay(5);
 }
@@ -742,7 +747,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan_ptr)
     /* --- TPDO1 (CAN ID: 0x281): DÒNG ĐIỆN / MOMENT THỰC TẾ 2 MOTOR --- */
     else if (id == (0x280 + ZLAC_NODE_ID))
     {
-        /* Object 0x6077 sub 03: Byte 0..1: Motor A (int16), Byte 2..3: Motor B (int16), đơn vị 0.1A */
+        /* Object 0x6077 sub 01 & 02: Byte 0..1: Motor A (int16), Byte 2..3: Motor B (int16), đơn vị 0.1A */
         zlac_fb.current_a = RD_I16(rx_buf);
         zlac_fb.current_b = RD_I16(rx_buf + 2);
     }
