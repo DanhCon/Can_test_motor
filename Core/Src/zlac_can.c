@@ -344,12 +344,12 @@ static void _ZLAC_EnableServo(uint8_t id)
     HAL_Delay(5);
 
     /* Bước 2: Lệnh Switch On (Controlword = 0x0007) */
-    d[0] = 0x07; d[1] = 0x00;
+    d[0] = 0x07;
     _CAN_Send(0x200 + id, 2, d);
     HAL_Delay(5);
 
     /* Bước 3: Lệnh Enable Operation (Controlword = 0x000F) -> Đóng relay cấp lực */
-    d[0] = 0x0F; d[1] = 0x00;
+    d[0] = 0x0F;
     _CAN_Send(0x200 + id, 2, d);
     HAL_Delay(10);
 }

@@ -97,7 +97,7 @@ uint32_t         last_feedback_time = 0;               /**< Mốc thời gian g�
  * ============================================================================ */
 uint8_t  is_running        = 0;
 uint8_t  btn_prev          = GPIO_PIN_SET; /**< Trạng thái nút nhấn chu kỳ trước (chân PA1) */
-uint8_t  btn_now           = GPIO_PIN_SET; /**< Trạng thái nút nhấn chu kỳ hiện tại */
+uint8_t  btn_now;                           /**< Trạng thái nút nhấn chu kỳ hiện tại */
 uint8_t  mode_return       = 0;            /**< 0: Thả lỏng, 1: Chờ 1 giây, 2: Chạy về */
 uint32_t stop_time         = 0;            /**< Đồng hồ bấm giờ */
 uint8_t  is_motor_enabled  = 1;            /**< Nhớ trạng thái motor */
