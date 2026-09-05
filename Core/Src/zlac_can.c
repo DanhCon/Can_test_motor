@@ -318,16 +318,16 @@ static void _ProfileVelocity_Init(uint8_t id)
     SDO_Write(id, 0x6060, 0x00, 0x03, 1);
     HAL_Delay(5);
 
-    /* Cài đặt gia tốc tăng tốc Profile Acceleration (0x6083) = 400ms */
-    SDO_Write(id, 0x6083, 0x01, 400, 4);   /* Motor A */
+    /* Cài đặt gia tốc tăng tốc Profile Acceleration (0x6083) = 700ms */
+    SDO_Write(id, 0x6083, 0x01, 700, 4);   /* Motor A */
     HAL_Delay(5);
-    SDO_Write(id, 0x6083, 0x02, 400, 4);   /* Motor B */
+    SDO_Write(id, 0x6083, 0x02, 700, 4);   /* Motor B */
     HAL_Delay(5);
 
-    /* Cài đặt giảm tốc phanh dừng Profile Deceleration (0x6084) = 200ms */
-    SDO_Write(id, 0x6084, 0x01, 200, 4);   /* Motor A */
+    /* Cài đặt giảm tốc phanh dừng Profile Deceleration (0x6084) = 900ms (hãm dừng êm) */
+    SDO_Write(id, 0x6084, 0x01, 900, 4);   /* Motor A */
     HAL_Delay(5);
-    SDO_Write(id, 0x6084, 0x02, 200, 4);   /* Motor B */
+    SDO_Write(id, 0x6084, 0x02, 900, 4);   /* Motor B */
     HAL_Delay(5);
 }
 

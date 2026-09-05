@@ -79,6 +79,7 @@ class ZLAC8015DUDPOdomNode(Node):
         # Bộ lọc làm mượt gia tốc (Velocity Smoother)
         self.declare_parameter('linear_accel', 0.8)   # m/s^2 (gia tốc tăng/giảm tốc dài)
         self.declare_parameter('angular_accel', 1.2)  # rad/s^2 (gia tốc quay)
+        self.declare_parameter('min_breakaway_velocity', 0.04)  # m/s (~7.1 RPM: Vận tốc bứt phá ma sát tĩnh)
 
         # Đọc giá trị Parameters
         self.stm32_ip = self.get_parameter('stm32_ip').value
@@ -100,6 +101,7 @@ class ZLAC8015DUDPOdomNode(Node):
         self.max_angular_velocity = self.get_parameter('max_angular_velocity').value
         self.linear_accel = self.get_parameter('linear_accel').value
         self.angular_accel = self.get_parameter('angular_accel').value
+        self.min_breakaway_vel = self.get_parameter('min_breakaway_velocity').value
 
         # ---------------------------------------------------------------------
         # BIẾN NỘI BỘ VẬN HÀNH & ODOMETRY
@@ -223,15 +225,21 @@ class ZLAC8015DUDPOdomNode(Node):
         step_lin = self.linear_accel * dt
         step_ang = self.angular_accel * dt
 
-        def move_towards(curr, target, max_step):
-            if curr < target:
+        def move_towards(curr, target, max_step, min_kick=0.0):
+            # Bứt phá ma sát tĩnh: Chỉ kích hoạt nếu có đặt min_kick > 0 và bắt đầu từ 0
+            if min_kick > 0.0 and abs(curr) < 0.001 and abs(target) > 0.001:
+                if target > 0:
+                    return min(min_kick, target)
+                else:
+                    return max(-min_kick, target)
+            elif curr < target:
                 return min(curr + max_step, target)
             elif curr > target:
                 return max(curr - max_step, target)
             return curr
 
-        self.current_linear = move_towards(self.current_linear, self.target_linear, step_lin)
-        self.current_angular = move_towards(self.current_angular, self.target_angular, step_ang)
+        self.current_linear = move_towards(self.current_linear, self.target_linear, step_lin, self.min_breakaway_vel)
+        self.current_angular = move_towards(self.current_angular, self.target_angular, step_ang, 0.0)
 
         # 3. Đóng gói 12 bytes nhị phân gửi xuống STM32:
         # Format: Header [0xAA, 0x55] (2B) + float v (4B) + float omega (4B) + uint16 CRC (2B)
