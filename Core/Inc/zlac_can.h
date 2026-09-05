@@ -38,6 +38,7 @@
 #define ZLAC_STALL_TIMEOUT_MS          400    /* Kẹt liên tục quá 400ms -> ngắt bảo vệ khẩn cấp */
 #define ZLAC_OVERCURRENT_THRESHOLD     120    /* Quá dòng cực đại tức thời: 12.0A -> ngắt ngay */
 #define ZLAC_ERR_STALL_OVERCURRENT     0xEEEE /* Mã lỗi tự định nghĩa khi kích hoạt bảo vệ kẹt tải */
+#define ZLAC_ERR_CAN_TIMEOUT           0xEE01 /* Mã lỗi tự định nghĩa khi mất kết nối CAN quá 1.5s */
 
 /* ============================================================================
  * PHẦN 3: CẤU TRÚC DỮ LIỆU & KIỂU ĐỊNH NGHĨA
@@ -68,6 +69,7 @@ typedef struct {
     volatile uint16_t error_code;  /**< Mã lỗi (0 = bình thường, 0xEEEE = quá dòng/kẹt tải) */
     volatile uint32_t hb_tick;     /**< Mốc thời gian nhận Heartbeat cuối (ms) */
     volatile uint8_t  hb_received; /**< Cờ báo hiệu đã nhận Heartbeat */
+    volatile uint32_t last_rx_tick;/**< Mốc thời gian nhận bản tin CAN cuối từ ZLAC (ms) */
 } ZLAC_Feedback_t;
 
 /**

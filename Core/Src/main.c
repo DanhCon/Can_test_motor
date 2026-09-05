@@ -310,6 +310,20 @@ int main(void)
     }
 
     /* --------------------------------------------------------------------------
+     * NHIỆM VỤ 2.1: KIỂM TRA & TỰ PHỤC HỒI SOCKET UDP NẾU BỊ ĐÓNG (ETHERNET RECONNECT)
+     * -------------------------------------------------------------------------- */
+    static uint32_t last_sock_check_time = 0;
+    if (HAL_GetTick() - last_sock_check_time >= 500)
+    {
+      last_sock_check_time = HAL_GetTick();
+      if (getSn_SR(0) != SOCK_UDP)
+      {
+        close(0);
+        socket(0, Sn_MR_UDP, 8888, 0);
+      }
+    }
+
+    /* --------------------------------------------------------------------------
      * NHIỆM VỤ 3: KIỂM TRA & TIẾP NHẬN GÓI ĐIỀU KHIỂN UDP TỪ MÁY TÍNH
      * -------------------------------------------------------------------------- */
     uint16_t rx_len = getSn_RX_RSR(0);

@@ -381,10 +381,10 @@ void ZLAC_CAN_Init(void)
     HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
     HAL_CAN_Start(&hcan);
 
-    /* Xóa sạch các biến phản hồi và khởi động State Machine từ bước cấu hình */
+    /* Xóa sạch các biến phản hồi và khởi động State Machine từ bước chờ driver đồng bộ */
     memset(&zlac_fb,   0, sizeof(zlac_fb));
     memset(&zlac_odom, 0, sizeof(zlac_odom));
-    zlac_state = ZLAC_CONFIG;
+    zlac_state = ZLAC_WAIT_HB;
     state_entry_tick = HAL_GetTick();
 }
 
@@ -400,12 +400,19 @@ void ZLAC_StateMachine(void)
     switch (zlac_state)
     {
         /* -------------------------------------------------------------
-         * TRẠNG THÁI 0: Chờ nhận Heartbeat từ ZLAC (dự phòng)
+         * TRẠNG THÁI 0: Chờ nhận Bootup/Heartbeat từ ZLAC hoặc Timeout khởi động
          * ------------------------------------------------------------- */
         case ZLAC_WAIT_HB:
-            if (zlac_fb.hb_received && (now - zlac_fb.hb_tick) < 3000)
+            /* Điều kiện 1: Nhận được bản tin Bootup (0x701) hoặc Heartbeat từ ZLAC */
+            if (zlac_fb.hb_received)
             {
                 zlac_fb.hb_received = 0;
+                zlac_state = ZLAC_CONFIG;
+                state_entry_tick = now;
+            }
+            /* Điều kiện 2: Timeout 1000ms dự phòng nếu ZLAC đã bật trước đó */
+            else if ((now - state_entry_tick) >= 1000)
+            {
                 zlac_state = ZLAC_CONFIG;
                 state_entry_tick = now;
             }
@@ -415,6 +422,10 @@ void ZLAC_StateMachine(void)
          * TRẠNG THÁI 1: Cấu hình RPDO, TPDO, thông số gia tốc và Start Node
          * ------------------------------------------------------------- */
         case ZLAC_CONFIG:
+            /* Chuẩn CANopen DS301: Đưa ZLAC về Pre-Operational để chấp nhận cấu hình PDO */
+            NMT_Send(id, 0x80);
+            HAL_Delay(10);
+
             _RPDO0_Config(id);            /* Cấu hình nhận Controlword (0x201) */
             _RPDO1_Config(id);            /* Cấu hình nhận Target Velocity (0x301) */
             _TPDO0_Config(id);            /* Bật tự động gửi Vận tốc thực tế (0x181 - 20ms) */
@@ -434,13 +445,26 @@ void ZLAC_StateMachine(void)
             _ZLAC_EnableServo(id);
             zlac_state = ZLAC_READY;
             state_entry_tick = HAL_GetTick();
+            zlac_fb.last_rx_tick = HAL_GetTick();
             break;
 
         /* -------------------------------------------------------------
          * TRẠNG THÁI 3: Sẵn sàng vận hành & Giám sát an toàn (Stall / Overcurrent)
          * ------------------------------------------------------------- */
         case ZLAC_READY:
-            /* 1. Kiểm tra mã lỗi phần cứng từ driver (TPDO3 CAN ID 0x481) */
+            /* 1. CAN Link Watchdog: Mất kết nối CAN quá 1.5 giây -> Phanh dừng xe an toàn */
+            if ((now - zlac_fb.last_rx_tick) > 1500)
+            {
+                ZLAC_Stop();
+                zlac_fb.vel_a = 0;
+                zlac_fb.vel_b = 0;
+                zlac_fb.error_code = ZLAC_ERR_CAN_TIMEOUT;
+                zlac_state = ZLAC_WAIT_HB;
+                state_entry_tick = now;
+                break;
+            }
+
+            /* 2. Kiểm tra mã lỗi phần cứng từ driver (TPDO3 CAN ID 0x481) */
             if (zlac_fb.error_code != 0)
             {
                 ZLAC_Stop();
@@ -696,6 +720,18 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan_ptr)
 
     uint32_t id = rx_hdr.StdId;
 
+    /* Cập nhật mốc thời gian nhận dữ liệu từ ZLAC và xóa cờ mất kết nối CAN nếu có */
+    if (id == (0x180 + ZLAC_NODE_ID) || id == (0x280 + ZLAC_NODE_ID) ||
+        id == (0x380 + ZLAC_NODE_ID) || id == (0x480 + ZLAC_NODE_ID) ||
+        id == (0x580 + ZLAC_NODE_ID) || ((id & 0x780) == 0x700))
+    {
+        zlac_fb.last_rx_tick = HAL_GetTick();
+        if (zlac_fb.error_code == ZLAC_ERR_CAN_TIMEOUT)
+        {
+            zlac_fb.error_code = 0;
+        }
+    }
+
     /* --- TPDO0 (CAN ID: 0x181): VẬN TỐC THỰC TẾ 2 MOTOR --- */
     if (id == (0x180 + ZLAC_NODE_ID))
     {
@@ -722,11 +758,20 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan_ptr)
     {
         zlac_fb.error_code = (uint16_t)(rx_buf[0] | ((uint16_t)rx_buf[1] << 8));
     }
-    /* --- NMT Heartbeat (CAN ID: 0x700 - 0x77F) --- */
+    /* --- NMT Bootup / Heartbeat (CAN ID: 0x700 - 0x77F) --- */
     else if ((id & 0x780) == 0x700)
     {
         zlac_fb.hb_received = 1;
         zlac_fb.hb_tick = HAL_GetTick();
+
+        /* Nếu Driver vừa khởi động lại (bản tin Bootup 0x701) khi đang vận hành -> tự động cấu hình lại */
+        if (rx_buf[0] == 0x00 || rx_buf[0] == 0x7F)
+        {
+            if (zlac_state == ZLAC_READY || zlac_state == ZLAC_FAULT)
+            {
+                zlac_state = ZLAC_CONFIG;
+            }
+        }
     }
     /* --- SDO Response (CAN ID: 0x581): Phản hồi từ lệnh đọc SDO --- */
     else if (id == (0x580 + ZLAC_NODE_ID))
