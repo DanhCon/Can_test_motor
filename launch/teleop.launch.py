@@ -17,23 +17,22 @@ def generate_launch_description():
             }]
         ),
 
-        # 2. Node teleop nội bộ của project_1 (Không lo bị mất khi restart Docker)
-        # Gộp cả Tiến/Lùi và Bẻ lái vào Cần Trái, Nút kích hoạt L1 (4)
+        # 2. Node teleop_joy: Cần TRÁI lái Tiến/Lùi, Cần PHẢI bẻ lái Trái/Phải
         Node(
             package='project_1',
             executable='teleop_joy.py',
             name='teleop_joy_node',
             output='screen',
             parameters=[{
-                'axis_linear': 1,            # Cần gạt TRÁI (Lên/Xuống): Tiến / Lùi
-                'axis_angular': 0,           # Cần gạt TRÁI (Trái/Phải): Quay xe (Gộp chung cần trái)
-                'scale_linear_normal': 0.8,  # Tốc độ tiến thẳng tối đa: 0.8 m/s
-                'scale_angular_normal': 0.6, # Tốc độ quay vòng tối đa: 0.6 rad/s
+                'axis_linear': 1,            # Cần TRÁI (Lên/Xuống): Tiến / Lùi (Dòng số 2 trong axes)
+                'axis_angular': 2,           # Cần PHẢI (Trái/Phải): Bẻ lái Quay xe (Dòng số 3 trong axes)
+                'scale_linear_normal': 0.8,  # Tốc độ tiến thẳng: 0.8 m/s
+                'scale_angular_normal': 0.8, # Tốc độ quay xe: 0.8 rad/s
                 'scale_linear_turbo': 1.2,   # Tốc độ khi giữ Turbo (R1): 1.2 m/s
-                'scale_angular_turbo': 1.0,  # Tốc độ quay Turbo: 1.0 rad/s
+                'scale_angular_turbo': 1.2,  # Tốc độ quay Turbo: 1.2 rad/s
                 'enable_deadman': True,      # Bắt buộc bấm cò mới chạy
-                'btn_deadman': 4,            # Nút kích hoạt: L1 / LB
-                'btn_turbo': 5,              # Nút Turbo: R1 / RB
+                'btn_deadman': 9,            # Nút kích hoạt: L1 (Dòng số 10 trong buttons)
+                'btn_turbo': 5,              # Nút Turbo: R1
                 'btn_estop': 1,              # Nút dừng khẩn: B / Tròn
                 'btn_reset_odom': 3,         # Nút reset Odometry: Y / Tam giác
             }]
