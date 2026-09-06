@@ -15,7 +15,7 @@ def generate_launch_description():
         description='Full path to the BNO055 parameters YAML file'
     )
 
-    # 1. Driver Node BNO055
+    # 1. Driver Node BNO055 (name match voi key trong file YAML)
     bno055_node = Node(
         package='bno055',
         executable='bno055',
@@ -25,14 +25,14 @@ def generate_launch_description():
     )
 
     # 2. Static TF Publisher: base_link -> imu_link
-    # Lưu ý: Cần đo đạc lại khoảng cách vật lý thực tế trên khung xe mới
-    # Thứ tự tham số: x y z yaw pitch roll frame_id child_frame_id
     static_tf_node = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
         name='base_link_to_imu_tf',
         output='screen',
-        arguments=['0.175', '-0.048', '0.041', '0.0', '0.0', '0.0', 'base_link', 'imu_link']
+        arguments=['--x', '0.175', '--y', '-0.048', '--z', '0.041',
+                   '--yaw', '0.0', '--pitch', '0.0', '--roll', '0.0',
+                   '--frame-id', 'base_link', '--child-frame-id', 'imu_link']
     )
 
     return LaunchDescription([

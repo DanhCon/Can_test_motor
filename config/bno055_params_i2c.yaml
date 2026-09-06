@@ -1,25 +1,46 @@
+bno055_node:
+  ros__parameters:
+    ros_topic_prefix: "bno055/"
+    connection_type: "i2c"
+    i2c_bus: 1                   # Jetson TX2 Pin 27/28 (Bus 1)
+    i2c_addr: 40                 # 0x28 hex = 40 dec
+    data_query_frequency: 50.0   # 50Hz dong bo voi chu ky UDP Gateway
+    calib_status_frequency: 0.1  # 0.1Hz = 10s kiem tra calib 1 lan
+    frame_id: "imu_link"
+    operation_mode: 12           # 12 = 0x0C = NDOF mode
+    placement_axis_remap: "P0"
+
+    # Scale factors chuan
+    acc_factor: 100.0
+    mag_factor: 16000000.0
+    gyr_factor: 900.0
+    grav_factor: 100.0
+
+    # Offsets ban dau dat false de calib
+    set_offsets: false
+    offset_acc: [0, 0, 0]
+    offset_mag: [0, 0, 0]
+    offset_gyr: [0, 0, 0]
+    radius_acc: 1000
+    radius_mag: 680
+
 bno055:
   ros__parameters:
     ros_topic_prefix: "bno055/"
     connection_type: "i2c"
-    i2c_bus: 1                   # Jetson TX2 I2C bus (Pin 27/28 trên J21 header là bus 1; kiểm tra bằng i2cdetect)
-    i2c_addr: 0x28               # Địa chỉ I2C (0x28 khi chân COM3/ADD nối GND; 0x29 khi nối 3.3V)
-    data_query_frequency: 50.0   # Tần số lấy mẫu 50Hz (đồng bộ hoàn hảo với chu kỳ 20ms của STM32 UDP Gateway)
-    calib_status_frequency: 0.1  # Tần số kiểm tra hiệu chuẩn (0.1Hz = 10s một lần)
+    i2c_bus: 1
+    i2c_addr: 40
+    data_query_frequency: 50.0
+    calib_status_frequency: 0.1
     frame_id: "imu_link"
-    operation_mode: 0x0C         # 0x0C = NDOF (9-DOF Sensor Fusion kết hợp Accel + Gyro + Mag)
-    placement_axis: "P0"         # Hướng lắp đặt chip P0..P7 (mặc định P0: Chip nằm ngang, dot ở góc trên-trái)
+    operation_mode: 12
+    placement_axis_remap: "P0"
 
-    # Hệ số quy đổi đơn vị chuẩn SI cho BNO055
-    acc_factor: 100.0            # 1 m/s^2 = 100 LSB
-    mag_factor: 16000000.0       # 1 Tesla = 16,000,000 LSB (16 LSB / uT)
-    gyr_factor: 900.0            # 1 rad/s = 900 LSB (16 LSB / deg/s)
-    grav_factor: 100.0           # 1 m/s^2 = 100 LSB
+    acc_factor: 100.0
+    mag_factor: 16000000.0
+    gyr_factor: 900.0
+    grav_factor: 100.0
 
-    # Cấu hình nạp bù sai số (Calibration Offsets)
-    # QUAN TRỌNG: Khi chuyển sang xe mới, BẮT BUỘC đặt set_offsets: false!
-    # Thực hiện quy trình múa hiệu chuẩn để SYS/GYR/ACC/MAG đạt 3, sau đó gọi service
-    # /bno055/calibration_request lấy các giá trị offset mới điền vào dưới và đổi thành true.
     set_offsets: false
     offset_acc: [0, 0, 0]
     offset_mag: [0, 0, 0]
