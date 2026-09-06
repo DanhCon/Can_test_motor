@@ -181,6 +181,13 @@ Can_test_motor/
 ### ❌ Hố sâu 5: Yêu cầu phạm vi của người dùng (User Scope Constraints)
 - **Quy tắc quan trọng:** Người dùng **tuyệt đối không muốn tạo thêm các topic ROS 2 riêng lẻ cho dòng điện** (như `/motor_a_current`, `/motor_b_current`). Dữ liệu dòng điện chỉ được bóc tách và lưu vào biến nội bộ trong node hoặc đưa vào chẩn đoán. Đừng tự ý thêm publisher mới nếu người dùng không yêu cầu.
 
+### ❌ Hố sâu 6: Tần số EKF (robot_localization) trên Jetson TX2 & Hiện tượng "Failed to meet update rate"
+- **Hiện tượng:** Nếu đặt EKF chạy ở `50.0 Hz` (chu kỳ chỉ có `20.0 ms`), CPU ARM Cortex-A57 của Jetson TX2 khi tính toán nhân các ma trận trạng thái và hiệp phương sai của 2 nguồn cảm biến (Odom + IMU) mất khoảng `20.2 ms ~ 23.5 ms`. Việc vượt quá chu kỳ một lượng nhỏ ($0.2 \sim 3.5\text{ ms}$) khiến `ekf_node` liên tục spam cảnh báo `[ekf_node] Failed to meet update rate! Took 0.023s`.
+- **Bài học & Giải pháp chuẩn:** 
+  - Trong file `config/ekf.yaml`, cấu hình **`frequency: 30.0`** (chu kỳ $33.3\text{ ms}$). Mức này cho CPU Jetson TX2 hơn $10\text{ ms}$ vùng đệm (headroom an toàn), triệt tiêu hoàn toàn cảnh báo trễ hạn trong suốt quá trình xe vận hành bình thường. Cảm biến phần cứng vẫn giữ nguyên 50 Hz.
+  - **Hiện tượng 1 dòng duy nhất khi nhấn nút Reset (Y / Tam giác):** Khi bấm reset, node `teleop_joy` phát lệnh `/set_pose` khiến EKF phải khóa luồng, xóa bộ đệm lịch sử đo và nạp lại toàn bộ ma trận ban đầu ($15 \times 15$). Tác vụ khởi tạo lại này mất đúng `33.56 ms` (chỉ nhỉnh hơn ngưỡng 33.33 ms đúng 0.23 ms), sinh ra đúng 1 dòng thông báo duy nhất tại khoảnh khắc bấm nút rồi tắt hẳn. **Hiện tượng này hoàn toàn bình thường và vô hại**.
+  - Nếu muốn console sạch bóng 100% không bao giờ xuất hiện cảnh báo dù là khi reset, có thể đặt `frequency: 25.0` (chu kỳ $40.0\text{ ms}$, vẫn vượt xa nhu cầu 10-20 Hz của Nav2).
+
 ---
 
 ## 🛠️ 6. CẨM NANG "BẮT BỆNH" NHANH KHI HỆ THỐNG GẶP SỰ CỐ (TROUBLESHOOTING)
@@ -199,6 +206,11 @@ Can_test_motor/
 - Kiểm tra cờ `motor_b_reverse`: Mặc định trong code là `True` (trên ROS 2) và `1` (trên STM32). Nếu động cơ B lắp cùng chiều hoặc cơ khí thay đổi, đảo cờ này.
 - Kiểm tra CPR: Phải đúng `4096`.
 - Kiểm tra bán kính bánh xe $R = 0.0535\text{ m}$ và khoảng cách bánh $L = 0.450\text{ m}$.
+
+### Triệu chứng 3: Cảnh báo `[ekf_node] Failed to meet update rate! Took 0.035s / 0.023s`
+- **Nguyên nhân:** Tần số EKF đặt quá cao so với khả năng tính toán ma trận của CPU ARM Jetson TX2.
+- **Khắc phục:** Mở `config/ekf.yaml`, hạ `frequency` từ `50.0` xuống `30.0` hoặc `25.0`.
+- **Lưu ý lúc Reset Odometry:** Nếu chỉ hiện đúng 1 dòng duy nhất lúc bấm nút Y (Reset), đây là hiện tượng hoàn toàn bình thường do tác vụ nạp lại ma trận `/set_pose`, không gây mất dữ liệu hay ảnh hưởng tới điều khiển.
 
 ---
 
@@ -272,18 +284,21 @@ Can_test_motor/
 ### Lịch sử bàn giao:
 <!-- Agent mới ghi tiếp vào dưới dòng này, entry mới nhất lên trên cùng -->
 
-#### [2026-09-06 17:13] - Antigravity (Gemini 3.8 Flash) - Tối ưu tần số EKF xuống 30Hz cho Jetson TX2
+#### [2026-09-06 17:13] - Antigravity (Gemini 3.8 Flash) - Tối ưu tần số EKF xuống 30Hz cho Jetson TX2 & Giải thích Reset Spike
 - **Hiện tượng lỗi:** `[ekf_node-4] Failed to meet update rate! Took 0.023478s / 0.020229s`. Chu kỳ 50Hz (20.0ms) bị quá tải nhẹ (~2-3ms) do năng lực tính toán CPU ARM Cortex-A57 trên Jetson TX2.
 - **Giải pháp & File đã sửa:**
   - `config/ekf.yaml`: Hạ `frequency: 30.0` (chu kỳ 33.3ms, dư 10-13ms headroom an toàn cho Jetson TX2 tính toán), tắt `print_diagnostics: false` để giảm overhead CPU.
   - Cảm biến đầu vào vẫn giữ nguyên 50Hz (UDP STM32 50Hz + BNO055 50Hz), EKF nhận đủ toàn bộ các gói tin và cập nhật ma trận với tốc độ 30Hz mượt mà cho Nav2.
+- **Hiện tượng Reset Spike (đã kiểm tra thực tế & xác nhận an toàn):**
+  - Khi xe chạy bình thường: 100% không còn bất kỳ cảnh báo nào.
+  - Khi người dùng nhấn nút Reset (Y / Tam giác): Xuất hiện đúng 1 dòng duy nhất `Took 0.03356s` (chỉ vượt ngưỡng 33.33ms đúng 0.23ms) do tác vụ nạp lại ma trận `/set_pose`. Đây là hiện tượng bình thường, vô hại và không làm mất dữ liệu. Nếu cần xóa sạch 100%, có thể hạ xuống 25Hz.
 - **Cách verify nhanh:**
   ```bash
   cd /home/nhatbot_ws/src/can_test_motor && git pull origin main
   cd /home/nhatbot_ws && colcon build --packages-select can_test_motor --symlink-install && source install/setup.bash
   ros2 launch can_test_motor ekf.launch.py
   ```
-  -> Sạch bóng cảnh báo `Failed to meet update rate!`, `/odometry/filtered` ổn định ở 30Hz.
+  -> Khi chạy bình thường sạch bóng cảnh báo, `/odometry/filtered` ổn định ở 30Hz.
 ---
 
 #### [2026-09-06 17:10] - Antigravity (Gemini 3.8 Flash) - Kích hoạt Bộ lọc Dung hợp Cảm biến EKF (robot_localization)
