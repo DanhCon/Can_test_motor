@@ -97,14 +97,16 @@ class GamepadTeleopNode(Node):
         self.get_logger().info("=" * 65)
 
     def joy_callback(self, msg: Joy):
-        # 1. Kiểm tra nút phanh khẩn cấp E-Stop (Nút B / Tròn)
-        if len(msg.buttons) > self.btn_estop and msg.buttons[self.btn_estop] == 1:
-            self.estop_active = not self.estop_active
-            if self.estop_active:
-                self.get_logger().warn("[E-STOP] PHANH KHẨN CẤP ĐÃ ĐƯỢC KÍCH HOẠT! (Bấm lại nút B để mở khóa)")
-            else:
-                self.get_logger().info("[E-STOP] Đã mở khóa phanh khẩn cấp.")
-            return
+        # 1. Kiểm tra nút phanh khẩn cấp E-Stop (Nút B / Tròn - Bắt sườn dương)
+        if len(msg.buttons) > self.btn_estop:
+            btn_e_state = msg.buttons[self.btn_estop]
+            if btn_e_state == 1 and getattr(self, 'last_estop_btn_state', 0) == 0:
+                self.estop_active = not self.estop_active
+                if self.estop_active:
+                    self.get_logger().warn("[E-STOP] PHANH KHẨN CẤP ĐÃ ĐƯỢC KÍCH HOẠT! (Bấm lại nút B để mở khóa)")
+                else:
+                    self.get_logger().info("[E-STOP] Đã mở khóa phanh khẩn cấp.")
+            self.last_estop_btn_state = btn_e_state
 
         if self.estop_active:
             self.v_out = 0.0
@@ -119,16 +121,27 @@ class GamepadTeleopNode(Node):
             self.last_reset_btn_state = btn_state
 
         # 3. Kiểm tra nút an toàn Deadman Switch (L1 / LB)
+        # Hỗ trợ thông minh: Tự động bắt cả khi cắm dây USB (index 4) lẫn Bluetooth (index 9)
         if self.enable_deadman:
-            if len(msg.buttons) <= self.btn_deadman or msg.buttons[self.btn_deadman] == 0:
+            is_deadman = False
+            if len(msg.buttons) > self.btn_deadman and msg.buttons[self.btn_deadman] == 1:
+                is_deadman = True
+            if len(msg.buttons) > 4 and msg.buttons[4] == 1:
+                is_deadman = True
+            if len(msg.buttons) > 9 and msg.buttons[9] == 1:
+                is_deadman = True
+
+            if not is_deadman:
                 # Chưa giữ nút an toàn -> Tự động dừng xe
                 self.v_out = 0.0
                 self.omega_out = 0.0
                 return
 
-        # 4. Kiểm tra nút Turbo Boost (R1 / RB)
+        # 4. Kiểm tra nút Turbo Boost (R1 / RB: Hỗ trợ cả index 5 lẫn index 10)
         is_turbo = False
-        if len(msg.buttons) > self.btn_turbo and msg.buttons[self.btn_turbo] == 1:
+        if (len(msg.buttons) > self.btn_turbo and msg.buttons[self.btn_turbo] == 1) or \
+           (len(msg.buttons) > 5 and msg.buttons[5] == 1) or \
+           (len(msg.buttons) > 10 and msg.buttons[10] == 1):
             is_turbo = True
 
         scale_lin = self.scale_linear_turbo if is_turbo else self.scale_linear_normal

@@ -31,7 +31,7 @@ def generate_launch_description():
                 'scale_linear_turbo': 0.3,   # Turbo khóa ở 0.3 m/s
                 'scale_angular_turbo': 0.5,  # Tốc độ quay Turbo: 0.5 rad/s
                 'enable_deadman': True,      # Bắt buộc giữ L1 mới cho chạy
-                'btn_deadman': 9,            # Nút kích hoạt: L1 (hoặc 4 tùy loại tay cầm)
+                'btn_deadman': 4,            # Nút kích hoạt: L1 (vị trí số 5 = index 4)
                 'btn_turbo': 5,              # Nút Turbo: R1
                 'btn_estop': 1,              # Nút dừng khẩn: B / Tròn
                 'btn_reset_odom': 3,         # Nút reset Odometry: Y / Tam giác
