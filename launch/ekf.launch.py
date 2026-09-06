@@ -1,8 +1,9 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.conditions import IfCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
@@ -37,6 +38,12 @@ def generate_launch_description():
         'use_bno055',
         default_value='true',
         description='Bat/tat driver doc phan cung cam bien IMU BNO055 qua I2C'
+    )
+
+    use_lidar_arg = DeclareLaunchArgument(
+        'use_lidar',
+        default_value='true',
+        description='Bat/tat cam bien quet moi truong OLE LiDAR qua Ethernet (true/false)'
     )
 
     # -------------------------------------------------------------------------
@@ -140,15 +147,26 @@ def generate_launch_description():
         condition=IfCondition(LaunchConfiguration('use_joy'))
     )
 
+    # -------------------------------------------------------------------------
+    # 5. CAM BIEN QUET MOI TRUONG OLE LIDAR (15Hz, 360 do, /scan & /scan_filtered)
+    # -------------------------------------------------------------------------
+    ole_lidar_launch_file = os.path.join(get_package_share_directory('ros2_lidar'), 'launch', 'ole2dv2_launch.py')
+    ole_lidar_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(ole_lidar_launch_file),
+        condition=IfCondition(LaunchConfiguration('use_lidar'))
+    )
+
     return LaunchDescription([
         ekf_config_arg,
         bno055_config_arg,
         use_joy_arg,
         use_bno055_arg,
+        use_lidar_arg,
         bno055_node,
         static_tf_imu,
         zlac_udp_node,
         ekf_node,
+        ole_lidar_launch,
         joy_node,
         teleop_joy_node
     ])
