@@ -18,7 +18,7 @@ ole_lidar:
     ip_address: "192.168.1.101"
     subnet_mask: "255.255.255.0"
     gateway: "192.168.1.1"
-    udp_port: 60000
+    udp_port: 2368
     frame_id: "laser_frame"
     rpm: 10.0
     scan_frequency: 10.0
@@ -40,7 +40,7 @@ ole_lidar:
     # ============================================
     # GIAO THỨC - CẤU HÌNH CƠ BẢN
     # ============================================
-    udp_port: 60000                      # Cổng UDP nhận dữ liệu từ OLE
+    udp_port: 2368                      # Cổng UDP nhận dữ liệu từ OLE
     frame_id: "laser_frame"              # Frame ID cho TF
     
     # ============================================
