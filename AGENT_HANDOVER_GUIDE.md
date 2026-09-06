@@ -37,8 +37,9 @@ Dự án xây dựng hệ thống điều khiển cầu nối thời gian thực
 
 ---
 
-## 📁 2. CẤU TRÚC CODEBASE & TRÁCH NHIỆM TỪNG FILE
+## 📁 2. CẤU TRÚC CODEBASE & CHI TIẾT CÁC FILE NODE, CONFIG, LAUNCH
 
+### 2.1. Cây thư mục tổng thể dự án
 ```
 Can_test_motor/
 ├── Core/
@@ -46,15 +47,52 @@ Can_test_motor/
 │   │   ├── zlac_can.h            # Khai báo cấu trúc, macro, hằng số cơ khí, mã lỗi CANopen
 │   │   └── main.h                # Khai báo chân GPIO, SPI1, CAN1
 │   └── Src/
-│       ├── main.c                # Vòng lặp chính: Đọc/ghi W5500, Watchdog 250ms, gửi Telemetry 50Hz
+│       ├── main.c                # Vòng lặp chính STM32: Đọc/ghi W5500, Watchdog 250ms, gửi Telemetry 50Hz
 │       └── zlac_can.c            # CANopen State Machine, PDO mapping, SDO Write/Read, Kinematics
 ├── scripts/
-│   └── zlac_udp_odom_node.py     # Node ROS 2: UDP Client, Velocity Smoother, Breakaway Kick, Odometry, TF
+│   ├── zlac_udp_odom_node.py     # [NODE CHÍNH] Gateway UDP điều khiển động cơ, Odometry, TF & Watchdog
+│   ├── teleop_joy.py             # [NODE TAY CẦM] Ánh xạ Gamepad (/joy) sang /cmd_vel với Deadman & Turbo
+│   └── test_robot_telemetry.py   # [SCRIPT TEST] Kiểm thử độc lập kết nối UDP nhị phân & đo RTT không cần ROS 2
+├── config/
+│   ├── joy.yaml                  # Cấu hình teleop_twist_joy chuẩn (cần gạt, deadman, giới hạn tốc độ)
+│   ├── ekf.yaml                  # Cấu hình bộ lọc Extended Kalman Filter dung hợp /odom và /bno055/imu
+│   ├── bno055_params_i2c.yaml    # Cấu hình IMU 9-DOF BNO055 qua I2C (offsets calib, NDOF 50Hz)
+│   └── ole2dv2.yaml              # Cấu hình LiDAR công nghiệp OLE qua mạng Ethernet UDP (IP 192.168.1.101)
 ├── launch/
-│   └── teleop.launch.py          # Launch file chạy chung: joy_node, teleop_joy, zlac_udp_odom_node
-├── AGENT_HANDOVER_GUIDE.md       # Tài liệu này (Hướng dẫn bàn giao cho AI Agent)
+│   ├── teleop.launch.py          # [LAUNCH CHÍNH] Khởi động joy_node + teleop_joy + zlac_udp_odom_node
+│   ├── teleop_robot.launch.py    # Launch file tay cầm cấu hình tốc độ mềm mại hơn
+│   ├── bno055.launch.py          # Khởi động driver IMU BNO055 + Static TF base_link -> imu_link
+│   ├── lidar.launch.py           # Launch file tổng hợp chạy OLE LiDAR (Ethernet) hoặc RPLidar (USB)
+│   ├── ole_lidar.launch.py       # Khởi động riêng OLE LiDAR qua Ethernet
+│   └── rplidar.launch.py         # Khởi động riêng RPLidar qua cổng USB Serial (/dev/ttyUSB0)
+├── AGENT_HANDOVER_GUIDE.md       # Tài liệu này (Living Document - kim chỉ nam cho Agent)
 └── README.md                     # Hướng dẫn đấu dây phần cứng và tài liệu kỹ thuật
 ```
+
+### 2.2. Chi tiết các File Node (`scripts/`)
+| Tên File | Chức năng chính | Các tính năng & logic đã hoàn thành |
+| :--- | :--- | :--- |
+| **`zlac_udp_odom_node.py`** | **Node Lõi điều khiển & Odometry** | • **Giao tiếp UDP nhị phân (50 Hz):** Gửi gói 12 bytes (`<BBffH`, CRC-16/Modbus) tới STM32 `192.168.1.100:8888`. Hứng gói Telemetry 22 bytes (`<BBhhllHhhH`) từ STM32.<br>• **Velocity Smoother:** Làm mượt gia tốc tuyến tính (`linear_accel = 0.8 m/s²`) và góc quay (`angular_accel = 1.5 rad/s²`).<br>• **Breakaway Kick (Bứt phá ma sát tĩnh):** Tự kích bước nhảy `min_breakaway_velocity = 0.04 m/s` khi khởi hành từ vận tốc 0 để 2 bánh bứt phá đồng thời, chống hiện tượng xe bị lệch bánh.<br>• **Odometry Runge-Kutta bậc 2:** Tính toán vị trí robot từ hiệu số xung encoder bánh trái/phải (`dist_center`, `d_theta`), chuẩn hóa góc quay `[-π, π]`, publish `/odom` và broadcast TF `odom -> base_link`.<br>• **Ethernet Watchdog:** Đếm thời gian nhận UDP; nếu quá `1.0s` mất kết nối sẽ cảnh báo lỗi đỏ rực trên console, tự in thông báo phục hồi khi có lại mạng.<br>• **Bảo vệ & Chẩn đoán:** Bắt và cảnh báo mã lỗi `0xEEEE` (kẹt tải/quá dòng), `0xEE01` (mất CAN). Publish `/battery_voltage` và cung cấp Service `/reset_odom`.<br>• **Lưu trữ dòng điện nội bộ:** Lưu `self.current_a`, `self.current_b` (không tạo topic ROS 2 theo đúng yêu cầu người dùng). |
+| **`teleop_joy.py`** | **Node Điều khiển Tay cầm Gamepad** | • Lắng nghe topic `/joy` từ `joy_node`.<br>• **Deadman Switch:** Giữ nút L1 (`btn_deadman = 9` hoặc `4`) mới cho phép phát lệnh `/cmd_vel`. Nhả tay = tự động dừng xe.<br>• **Turbo Boost:** Nhấn giữ nút R1 (`btn_turbo = 5`) để tăng tốc tối đa từ `0.8 m/s` lên `1.2 m/s`.<br>• **Phanh khẩn cấp (E-Stop):** Nhấn nút B / Tròn (`btn_estop = 1`) để dừng khẩn tức thời.<br>• **Nút Reset Odom:** Nhấn nút Y / Tam giác (`btn_reset_odom = 3`) để gọi service `/reset_odom`.<br>• Hỗ trợ vùng chết joystick (`deadzone = 0.08`) chống trôi cần. |
+| **`test_robot_telemetry.py`** | **Script kiểm thử độc lập không cần ROS 2** | • Chạy bằng Python thuần (`python3 test_robot_telemetry.py`).<br>• Đo độ trễ khứ hồi RTT thực tế giữa PC và STM32 (đạt `0.20 ~ 0.30 ms`).<br>• Bảng điều khiển Console trực quan: Hiện RPM 2 bánh, Xung encoder, Dòng điện 2 motor, Điện áp Pin, Mã lỗi, Tỉ lệ mất gói (Packet Loss = 0%). |
+
+### 2.3. Chi tiết các File Cấu hình (`config/`)
+| Tên File | Chức năng & Phạm vi áp dụng | Nội dung cấu hình chi tiết đã thiết lập |
+| :--- | :--- | :--- |
+| **`joy.yaml`** | Cấu hình cho package `teleop_twist_joy` | • Gộp cả tiến/lùi và bẻ lái vào cùng 1 cần gạt trái (đẩy chéo 45° để vừa tiến vừa cua).<br>• Tốc độ thường: `scale_linear.x = 0.8 m/s`, `scale_angular.yaw = 0.6 rad/s`.<br>• Bật `require_enable_button = true`, nút kích hoạt `enable_button = 4` (L1/LB). |
+| **`ekf.yaml`** | Bộ lọc Kalman mở rộng (`robot_localization`) | • Chạy ở tần số `50.0 Hz`, chế độ `two_d_mode = true` (khóa z, roll, pitch cho robot sàn phẳng).<br>• `odom0: /odom`: Chỉ lấy vận tốc tịnh tiến `vx` (bỏ `vyaw` để tránh sai số trượt lốp).<br>• `imu0: /bno055/imu`: Lấy góc `yaw` tuyệt đối từ thuật toán NDOF và vận tốc góc `vyaw` từ Gyroscope Z. Loại bỏ gia tốc trọng trường (`remove_gravitational_acceleration = true`). |
+| **`bno055_params_i2c.yaml`** | Cấu hình cảm biến IMU 9-DOF BNO055 | • Giao tiếp I2C bus 1 (Jetson TX2 Pin 27/28), địa chỉ I2C `40` (0x28).<br>• Tần số đọc dữ liệu `data_query_frequency = 50 Hz`. Frame ID: `imu_link`.<br>• Chế độ NDOF (`operation_mode = 12`).<br>• **Đã nạp sẵn bảng bù sai số thực tế (Calibration Offsets)** sau khi hiệu chuẩn trên xe mới: `offset_acc: [65503, 2, 65501]`, `offset_mag: [65341, 366, 65232]`, `offset_gyr: [0, 65534, 65535]`. |
+| **`ole2dv2.yaml`** | Cấu hình cảm biến LiDAR công nghiệp OLE Oleros2 | • Giao tiếp Ethernet UDP qua switch mạng: IP OLE `192.168.1.101`, Subnet `255.255.255.0`, Port UDP `60001`.<br>• Frame ID: `laser_frame`.<br>• Tần số quét `10.0 Hz` (600 RPM), góc quét toàn cảnh 360° (`-π` đến `+π`).<br>• Phạm vi đo khoảng cách: `0.15 m - 12.0 m`. Bật lọc dữ liệu và cường độ phản xạ (`enable_intensity = true`). |
+
+### 2.4. Chi tiết các File Khởi động (`launch/`)
+| Tên File | Các Node được khởi chạy | Tham số & Tùy biến quan trọng |
+| :--- | :--- | :--- |
+| **`teleop.launch.py`** | **[LAUNCH CHÍNH ĐIỀU KHIỂN ROBOT]**<br>1. `joy_node`<br>2. `teleop_joy.py`<br>3. `zlac_udp_odom_node.py` | • Đọc tay cầm tại `/dev/input/js0`.<br>• **Cấu hình tay cầm chuẩn PS4:** Cần TRÁI (`axis_linear = 1`) lái Tiến/Lùi, Cần PHẢI (`axis_angular = 2`) bẻ lái Xoay xe.<br>• Nút Deadman L1 (`btn_deadman = 9`), Turbo R1 (`btn_turbo = 5`), E-stop B (`btn_estop = 1`), Reset odom Y (`btn_reset_odom = 3`).<br>• Tự động truyền các thông số cơ khí chuẩn: `wheel_radius = 0.0535`, `wheel_base = 0.45`, `publish_tf = True`. |
+| **`teleop_robot.launch.py`** | 1. `joy_node`<br>2. `teleop_joy.py`<br>3. `zlac_udp_odom_node.py` | • Phiên bản cấu hình tốc độ mềm hơn (`0.5 m/s` thường, `1.2 m/s` turbo, `axis_angular = 3`). Thích hợp cho người mới làm quen hoặc test trong không gian hẹp. |
+| **`bno055.launch.py`** | 1. `bno055_node`<br>2. `static_transform_publisher` (`base_link -> imu_link`) | • Nạp file cấu hình `bno055_params_i2c.yaml`.<br>• **Static TF tọa độ lắp IMU thực tế:** `x = 0.175 m, y = -0.048 m, z = 0.041 m, yaw = 0.0, pitch = 0.0, roll = 0.0`. |
+| **`lidar.launch.py`** | **[LAUNCH TỔNG HỢP CẢM BIẾN QUÉT LASER]**<br>Hỗ trợ cả OLE LiDAR và RPLidar | • Cung cấp các tham số dòng lệnh linh hoạt:<br>&nbsp;&nbsp;`use_ole:=true` (mặc định bật OLE LiDAR qua Ethernet IP `192.168.1.101`).<br>&nbsp;&nbsp;`use_rplidar:=false` (tùy chọn bật RPLidar qua USB `/dev/ttyUSB0`).<br>• Tự động gán frame `laser_frame` đồng nhất cho cả 2 loại cảm biến. |
+| **`ole_lidar.launch.py`** | 1. `oleros2_node` | • Khởi chạy độc lập cảm biến OLE LiDAR qua IP `192.168.1.101` với frame `laser_frame`. |
+| **`rplidar.launch.py`** | 1. `sllidar_node` | • Khởi chạy độc lập RPLidar qua cổng USB Serial `/dev/ttyUSB0` (baudrate 115200) với frame `laser_frame`. |
 
 ---
 
