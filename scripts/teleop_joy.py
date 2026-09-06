@@ -20,7 +20,7 @@ Tương thích: ROS 2 Humble, Iron, Foxy, Jazzy
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Joy
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, PoseWithCovarianceStamped
 from std_srvs.srv import Trigger
 
 
@@ -84,6 +84,9 @@ class GamepadTeleopNode(Node):
 
         # Client gọi Service /reset_odom của zlac_udp_odom_node
         self.reset_odom_client = self.create_client(Trigger, 'reset_odom')
+
+        # Publisher gửi lệnh reset tới /set_pose của bộ lọc EKF (robot_localization)
+        self.set_pose_pub = self.create_publisher(PoseWithCovarianceStamped, 'set_pose', 10)
 
         # Timer định kỳ gửi cmd_vel
         self.timer = self.create_timer(1.0 / self.publish_rate, self.timer_callback)
@@ -174,12 +177,35 @@ class GamepadTeleopNode(Node):
         self.cmd_pub.publish(cmd)
 
     def call_reset_odom_service(self):
-        if not self.reset_odom_client.service_is_ready():
+        # 1. Reset Odometry thô trên node zlac_udp_odom_node (STM32)
+        if self.reset_odom_client.service_is_ready():
+            req = Trigger.Request()
+            future = self.reset_odom_client.call_async(req)
+            future.add_done_callback(self.service_response_callback)
+        else:
             self.get_logger().warn("Service /reset_odom chưa sẵn sàng!")
-            return
-        req = Trigger.Request()
-        future = self.reset_odom_client.call_async(req)
-        future.add_done_callback(self.service_response_callback)
+
+        # 2. Reset bộ lọc EKF (robot_localization) nếu đang chạy
+        try:
+            reset_pose = PoseWithCovarianceStamped()
+            reset_pose.header.stamp = self.get_clock().now().to_msg()
+            reset_pose.header.frame_id = 'odom'
+            reset_pose.pose.pose.position.x = 0.0
+            reset_pose.pose.pose.position.y = 0.0
+            reset_pose.pose.pose.position.z = 0.0
+            reset_pose.pose.pose.orientation.w = 1.0
+            reset_pose.pose.covariance = [
+                1e-3, 0.0,  0.0,  0.0,  0.0,  0.0,
+                0.0,  1e-3, 0.0,  0.0,  0.0,  0.0,
+                0.0,  0.0,  1e-3, 0.0,  0.0,  0.0,
+                0.0,  0.0,  0.0,  1e-3, 0.0,  0.0,
+                0.0,  0.0,  0.0,  0.0,  1e-3, 0.0,
+                0.0,  0.0,  0.0,  0.0,  0.0,  1e-3
+            ]
+            self.set_pose_pub.publish(reset_pose)
+            self.get_logger().info("Đã phát lệnh reset /set_pose tới bộ lọc EKF.")
+        except Exception as e:
+            self.get_logger().debug(f"Không thể phát /set_pose: {e}")
 
     def service_response_callback(self, future):
         try:

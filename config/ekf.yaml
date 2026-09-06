@@ -16,6 +16,9 @@ ekf_filter_node:
     base_link_frame: base_link
     world_frame: odom              # Chạy định vị cục bộ (Local EKF). Khi có SLAM/AMCL sẽ chuyển map_frame lên Nav2
 
+    publish_tf: true               # EKF chịu trách nhiệm phát TF duy nhất: odom -> base_link
+    publish_acceleration: false
+
     # 1. Nguồn dữ liệu 1: Odometry từ encoder bánh xe (/odom)
     odom0: /odom
     # Ma trận cấu hình: [x, y, z, roll, pitch, yaw, vx, vy, vz, vroll, vpitch, vyaw, ax, ay, az]
@@ -38,5 +41,6 @@ ekf_filter_node:
                   false, false, false]   # Bỏ gia tốc tuyến tính ax, ay để tránh nhiễu rung cơ khí
     imu0_queue_size: 10
     imu0_differential: false
-    imu0_relative: false
+    imu0_relative: true            # Xoay tương đối từ vị trí khởi động (Yaw ban đầu = 0)
     imu0_remove_gravitational_acceleration: true
+

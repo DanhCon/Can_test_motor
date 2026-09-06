@@ -13,6 +13,8 @@
   <depend>sensor_msgs</depend>
   <depend>tf2_ros</depend>
   <depend>bno055</depend>
+  <depend>robot_localization</depend>
+  <depend>joy</depend>
 
   <export>
     <build_type>ament_python</build_type>

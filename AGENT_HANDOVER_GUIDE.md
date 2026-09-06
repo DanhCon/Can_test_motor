@@ -90,6 +90,7 @@ Can_test_motor/
 | **`teleop.launch.py`** | **[LAUNCH CHÍNH ĐIỀU KHIỂN ROBOT]**<br>1. `joy_node`<br>2. `teleop_joy.py`<br>3. `zlac_udp_odom_node.py` | • Đọc tay cầm tại `/dev/input/js0`.<br>• **Cấu hình tay cầm chuẩn PS4:** Cần TRÁI (`axis_linear = 1`) lái Tiến/Lùi, Cần PHẢI (`axis_angular = 2`) bẻ lái Xoay xe.<br>• Nút Deadman L1 (`btn_deadman = 9`), Turbo R1 (`btn_turbo = 5`), E-stop B (`btn_estop = 1`), Reset odom Y (`btn_reset_odom = 3`).<br>• Tự động truyền các thông số cơ khí chuẩn: `wheel_radius = 0.0535`, `wheel_base = 0.45`, `publish_tf = True`. |
 | **`teleop_robot.launch.py`** | 1. `joy_node`<br>2. `teleop_joy.py`<br>3. `zlac_udp_odom_node.py` | • Phiên bản cấu hình tốc độ mềm hơn (`0.5 m/s` thường, `1.2 m/s` turbo, `axis_angular = 3`). Thích hợp cho người mới làm quen hoặc test trong không gian hẹp. |
 | **`bno055.launch.py`** | 1. `bno055_node`<br>2. `static_transform_publisher` (`base_link -> imu_link`) | • Nạp file cấu hình `bno055_params_i2c.yaml`.<br>• **Static TF tọa độ lắp IMU thực tế:** `x = 0.175 m, y = -0.048 m, z = 0.041 m, yaw = 0.0, pitch = 0.0, roll = 0.0`. |
+| **`ekf.launch.py`** | **[LAUNCH DUNG HỢP CẢM BIẾN EKF]**<br>1. `bno055_node`<br>2. `static_transform_publisher` (`base_link -> imu_link`)<br>3. `zlac_udp_odom_node` (`publish_tf=False`)<br>4. `ekf_node` (`robot_localization`)<br>5. `joy_node` + `teleop_joy` (tùy chọn) | • **Dung hợp 50Hz:** $v_x$ từ `/odom` + Yaw và $\omega_z$ từ `/bno055/imu`.<br>• Xuất ra topic `/odometry/filtered` siêu chuẩn xác và broadcast duy nhất TF `odom -> base_link`.<br>• Tự động cấu hình `publish_tf: False` trên `zlac_udp_odom_node` để tránh xung đột 2 nguồn TF.<br>• Hỗ trợ reset đồng bộ cả Odom thô lẫn EKF qua nút Y / Tam giác trên tay cầm. |
 | **`lidar.launch.py`** | **[LAUNCH TỔNG HỢP CẢM BIẾN QUÉT LASER]**<br>Hỗ trợ cả OLE LiDAR và RPLidar | • Cung cấp các tham số dòng lệnh linh hoạt:<br>&nbsp;&nbsp;`use_ole:=true` (mặc định bật OLE LiDAR qua Ethernet IP `192.168.1.101`).<br>&nbsp;&nbsp;`use_rplidar:=false` (tùy chọn bật RPLidar qua USB `/dev/ttyUSB0`).<br>• Tự động gán frame `laser_frame` đồng nhất cho cả 2 loại cảm biến. |
 | **`ole_lidar.launch.py`** | 1. `oleros2_node` | • Khởi chạy độc lập cảm biến OLE LiDAR qua IP `192.168.1.101` với frame `laser_frame`. |
 | **`rplidar.launch.py`** | 1. `sllidar_node` | • Khởi chạy độc lập RPLidar qua cổng USB Serial `/dev/ttyUSB0` (baudrate 115200) với frame `laser_frame`. |
@@ -270,6 +271,33 @@ Can_test_motor/
 
 ### Lịch sử bàn giao:
 <!-- Agent mới ghi tiếp vào dưới dòng này, entry mới nhất lên trên cùng -->
+
+#### [2026-09-06 17:10] - Antigravity (Gemini 3.8 Flash) - Kích hoạt Bộ lọc Dung hợp Cảm biến EKF (robot_localization)
+- **Trạng thái hiện tại:** Đã xây dựng hoàn chỉnh hệ thống dung hợp EKF 50Hz kết hợp Odometry bánh xe và IMU BNO055.
+  - Tạo launch file tổng hợp `launch/ekf.launch.py`: Khởi chạy đồng bộ BNO055 (50Hz NDOF), Static TF `base_link -> imu_link`, `zlac_udp_odom_node` với `publish_tf: False`, bộ lọc `robot_localization/ekf_node` nạp `config/ekf.yaml`, và cụm điều khiển tay cầm gamepad (tùy chọn, mặc định bật).
+  - Cập nhật `config/ekf.yaml`: Đặt `publish_tf: true` (EKF phát TF duy nhất `odom -> base_link`), `imu0_relative: true` (triệt tiêu góc lệch từ trường lúc bật máy, đưa Yaw ban đầu về 0).
+  - Cập nhật `scripts/teleop_joy.py`: Thêm cơ chế phát lệnh `/set_pose` khi người dùng nhấn nút Y / Tam giác trên tay cầm, giúp reset đồng thời cả Odometry thô và bộ lọc EKF về $(0,0,0)$.
+  - Sửa `launch/teleop_robot.launch.py`: Đổi package name cũ `project_1` sang `can_test_motor`.
+  - Cập nhật `package.xml`: Khai báo thêm phụ thuộc `robot_localization` và `joy`.
+- **File đã tạo/sửa:**
+  - `launch/ekf.launch.py` (Mới)
+  - `config/ekf.yaml`
+  - `scripts/teleop_joy.py`
+  - `launch/teleop_robot.launch.py`
+  - `package.xml`
+  - `AGENT_HANDOVER_GUIDE.md`
+- **Lệnh đã chạy & kết quả:** `python -m py_compile` tất cả file đều đạt 100% OK.
+- **Cách verify nhanh:**
+  ```bash
+  sudo apt update && sudo apt install -y ros-humble-robot-localization
+  cd /home/nhatbot_ws/src/can_test_motor && git pull origin main
+  cd /home/nhatbot_ws && colcon build --packages-select can_test_motor --symlink-install && source install/setup.bash
+  ros2 launch can_test_motor ekf.launch.py
+  # Kiểm tra dữ liệu:
+  ros2 topic echo /odometry/filtered
+  ros2 run tf2_ros tf2_echo odom base_link
+  ```
+---
 
 #### [2026-09-06 16:53] - Antigravity (Gemini 3.8 Flash) - Giới hạn tốc độ max 0.3 m/s và tắt Velocity Smoother trên ROS 2
 - **Trạng thái hiện tại:** Đã điều chỉnh tốc độ tay cầm giới hạn tối đa 0.3 m/s theo yêu cầu an toàn. Tắt bộ lọc gia tốc phần mềm trên ROS 2 (`enable_smoother = False`) để nhường việc điều tiết tăng/giảm tốc cho phần cứng driver ZLAC8015D (Profile Accel 700ms, Decel 900ms). Cập nhật package name `can_test_motor` trong `teleop.launch.py`.

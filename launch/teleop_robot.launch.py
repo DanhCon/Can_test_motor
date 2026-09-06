@@ -19,19 +19,19 @@ def generate_launch_description():
 
         # 2. Node ánh xạ tay cầm sang /cmd_vel (Deadman L1, Turbo R1, E-stop B)
         Node(
-            package='project_1',
-            executable='teleop_joy.py',
+            package='can_test_motor',
+            executable='teleop_joy',
             name='teleop_joy_node',
             output='screen',
             parameters=[{
                 'axis_linear': 1,            # Cần gạt trái Y: Tiến / Lùi
                 'axis_angular': 3,           # Cần gạt phải X: Rẽ Trái / Phải
-                'scale_linear_normal': 0.5,  # Tốc độ thường: 0.5 m/s
-                'scale_angular_normal': 1.0, # Tốc độ góc thường: 1.0 rad/s
-                'scale_linear_turbo': 1.2,   # Tốc độ Turbo: 1.2 m/s
-                'scale_angular_turbo': 1.6,  # Tốc độ góc Turbo: 1.6 rad/s
+                'scale_linear_normal': 0.3,  # Tốc độ an toàn: 0.3 m/s
+                'scale_angular_normal': 0.5, # Tốc độ góc an toàn: 0.5 rad/s
+                'scale_linear_turbo': 0.3,   # Tốc độ Turbo khóa ở 0.3 m/s
+                'scale_angular_turbo': 0.5,  # Tốc độ góc Turbo: 0.5 rad/s
                 'enable_deadman': True,      # Giữ nút L1 (LB) để chạy
-                'btn_deadman': 4,            # L1 / LB
+                'btn_deadman': 4,            # L1 / LB (nhận diện cả index 4 và 9)
                 'btn_turbo': 5,              # R1 / RB
                 'btn_estop': 1,              # B / Tròn
                 'btn_reset_odom': 3,         # Y / Tam giác
@@ -40,8 +40,8 @@ def generate_launch_description():
 
         # 3. Node Gateway UDP điều khiển động cơ và tính Odometry
         Node(
-            package='project_1',
-            executable='zlac_udp_odom_node.py',
+            package='can_test_motor',
+            executable='zlac_udp_odom_node',
             name='zlac_udp_odom_node',
             output='screen',
             parameters=[{
@@ -51,6 +51,9 @@ def generate_launch_description():
                 'wheel_radius': 0.0535,
                 'wheel_base': 0.45,
                 'publish_tf': True,
+                'enable_smoother': False,
+                'max_linear_velocity': 0.3,
+                'max_angular_velocity': 0.8,
             }]
         )
     ])
