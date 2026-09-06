@@ -271,6 +271,16 @@ Can_test_motor/
 ### Lịch sử bàn giao:
 <!-- Agent mới ghi tiếp vào dưới dòng này, entry mới nhất lên trên cùng -->
 
+#### [2026-09-06 16:53] - Antigravity (Gemini 3.8 Flash) - Giới hạn tốc độ max 0.3 m/s và tắt Velocity Smoother trên ROS 2
+- **Trạng thái hiện tại:** Đã điều chỉnh tốc độ tay cầm giới hạn tối đa 0.3 m/s theo yêu cầu an toàn. Tắt bộ lọc gia tốc phần mềm trên ROS 2 (`enable_smoother = False`) để nhường việc điều tiết tăng/giảm tốc cho phần cứng driver ZLAC8015D (Profile Accel 700ms, Decel 900ms). Cập nhật package name `can_test_motor` trong `teleop.launch.py`.
+- **File đã sửa:** 
+  - `scripts/zlac_udp_odom_node.py`: Thêm cờ `enable_smoother` (default False), `max_linear_velocity = 0.3`.
+  - `scripts/teleop_joy.py`: `scale_linear_normal = 0.3`, `scale_linear_turbo = 0.3`, `scale_angular = 0.5`.
+  - `launch/teleop.launch.py`: Cập nhật `package='can_test_motor'`, tốc độ 0.3 m/s, truyền `enable_smoother: False`.
+- **Lệnh đã chạy & kết quả:** `python -m py_compile` cả 3 file đều đạt 100% OK.
+- **Cách verify nhanh:** `ros2 launch can_test_motor teleop.launch.py` -> đẩy kịch cần joystick xe chạy tối đa 0.3 m/s, tăng/giảm tốc mượt mà do driver tự hãm.
+---
+
 #### [2026-09-06 16:25] - Antigravity (Gemini 3.8 Flash) - Hoàn thành Hiệu chuẩn IMU BNO055 và Lưu Offsets
 - **Trạng thái hiện tại:** Hiệu chuẩn thực tế BNO055 trên Jetson TX2 thành công xuất sắc (3,3,3,3). Đã gọi service trích xuất mảng offsets thực tế và lưu vĩnh viễn vào `config/bno055_params_i2c.yaml`, bật `set_offsets: true`.
 - **Thông số offsets thực tế đo được (2026-09-06):**

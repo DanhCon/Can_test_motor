@@ -72,11 +72,13 @@ class ZLAC8015DUDPOdomNode(Node):
         self.declare_parameter('control_rate', 50.0)      # Chu kỳ điều khiển gửi UDP: 50 Hz
         self.declare_parameter('cmd_vel_timeout', 0.25)   # Timeout ngắt lệnh an toàn: 250ms
 
-        # Giới hạn vận tốc
-        self.declare_parameter('max_linear_velocity', 1.5)   # m/s
-        self.declare_parameter('max_angular_velocity', 1.5)  # rad/s
+        # Giới hạn vận tốc (Giới hạn 0.3 m/s theo yêu cầu an toàn)
+        self.declare_parameter('max_linear_velocity', 0.3)   # m/s
+        self.declare_parameter('max_angular_velocity', 0.8)  # rad/s
 
         # Bộ lọc làm mượt gia tốc (Velocity Smoother)
+        # Mặc định = False: Tắt bộ lọc phần mềm trên ROS 2 để Driver ZLAC8015D tự điều tiết tăng/giảm tốc phần cứng
+        self.declare_parameter('enable_smoother', False)
         self.declare_parameter('linear_accel', 0.8)   # m/s^2 (gia tốc tăng/giảm tốc dài)
         self.declare_parameter('angular_accel', 1.2)  # rad/s^2 (gia tốc quay)
         self.declare_parameter('min_breakaway_velocity', 0.04)  # m/s (~7.1 RPM: Vận tốc bứt phá ma sát tĩnh)
@@ -99,6 +101,7 @@ class ZLAC8015DUDPOdomNode(Node):
 
         self.max_linear_velocity = self.get_parameter('max_linear_velocity').value
         self.max_angular_velocity = self.get_parameter('max_angular_velocity').value
+        self.enable_smoother = self.get_parameter('enable_smoother').value
         self.linear_accel = self.get_parameter('linear_accel').value
         self.angular_accel = self.get_parameter('angular_accel').value
         self.min_breakaway_vel = self.get_parameter('min_breakaway_velocity').value
@@ -243,24 +246,30 @@ class ZLAC8015DUDPOdomNode(Node):
                 )
 
         # 3. Bộ lọc gia tốc làm mượt (Velocity Smoother)
-        step_lin = self.linear_accel * dt
-        step_ang = self.angular_accel * dt
+        if self.enable_smoother:
+            step_lin = self.linear_accel * dt
+            step_ang = self.angular_accel * dt
 
-        def move_towards(curr, target, max_step, min_kick=0.0):
-            # Bứt phá ma sát tĩnh: Chỉ kích hoạt nếu có đặt min_kick > 0 và bắt đầu từ 0
-            if min_kick > 0.0 and abs(curr) < 0.001 and abs(target) > 0.001:
-                if target > 0:
-                    return min(min_kick, target)
-                else:
-                    return max(-min_kick, target)
-            elif curr < target:
-                return min(curr + max_step, target)
-            elif curr > target:
-                return max(curr - max_step, target)
-            return curr
+            def move_towards(curr, target, max_step, min_kick=0.0):
+                # Bứt phá ma sát tĩnh: Chỉ kích hoạt nếu có đặt min_kick > 0 và bắt đầu từ 0
+                if min_kick > 0.0 and abs(curr) < 0.001 and abs(target) > 0.001:
+                    if target > 0:
+                        return min(min_kick, target)
+                    else:
+                        return max(-min_kick, target)
+                elif curr < target:
+                    return min(curr + max_step, target)
+                elif curr > target:
+                    return max(curr - max_step, target)
+                return curr
 
-        self.current_linear = move_towards(self.current_linear, self.target_linear, step_lin, self.min_breakaway_vel)
-        self.current_angular = move_towards(self.current_angular, self.target_angular, step_ang, 0.0)
+            self.current_linear = move_towards(self.current_linear, self.target_linear, step_lin, self.min_breakaway_vel)
+            self.current_angular = move_towards(self.current_angular, self.target_angular, step_ang, 0.0)
+        else:
+            # Tắt bộ lọc tăng/giảm tốc mềm trên ROS 2: Gửi thẳng lệnh vận tốc xuống STM32
+            # Driver ZLAC8015D tự điều tiết tăng/giảm tốc êm ái bằng Profile Accel (700ms) và Decel (900ms) phần cứng
+            self.current_linear = self.target_linear
+            self.current_angular = self.target_angular
 
         # 4. Đóng gói 12 bytes nhị phân gửi xuống STM32:
         # Format: Header [0xAA, 0x55] (2B) + float v (4B) + float omega (4B) + uint16 CRC (2B)

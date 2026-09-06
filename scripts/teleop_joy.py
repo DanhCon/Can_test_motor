@@ -36,11 +36,11 @@ class GamepadTeleopNode(Node):
         self.declare_parameter('axis_angular', 3)       # Cần gạt phải X (hoặc gạt trái X = 0)
         self.declare_parameter('deadzone', 0.08)        # Vùng chết cần gạt (chống trôi cần)
 
-        # Cấu hình Vận tốc (m/s và rad/s)
-        self.declare_parameter('scale_linear_normal', 0.5)    # Tốc độ tiến bình thường: 0.5 m/s
-        self.declare_parameter('scale_angular_normal', 1.0)   # Tốc độ quay bình thường: 1.0 rad/s
-        self.declare_parameter('scale_linear_turbo', 1.2)     # Tốc độ khi giữ nút Turbo: 1.2 m/s
-        self.declare_parameter('scale_angular_turbo', 1.6)    # Tốc độ quay Turbo: 1.6 rad/s
+        # Cấu hình Vận tốc (Giới hạn tối đa 0.3 m/s theo yêu cầu)
+        self.declare_parameter('scale_linear_normal', 0.3)    # Tốc độ tiến bình thường: 0.3 m/s
+        self.declare_parameter('scale_angular_normal', 0.5)   # Tốc độ quay bình thường: 0.5 rad/s
+        self.declare_parameter('scale_linear_turbo', 0.3)     # Tốc độ Turbo khóa ở 0.3 m/s
+        self.declare_parameter('scale_angular_turbo', 0.5)    # Tốc độ quay Turbo: 0.5 rad/s
 
         # Cấu hình Nút bấm (Buttons)
         # Mặc định theo layout chuẩn Xbox / Logitech / PS4 (L1=4, R1=5, B=1, Y=3)
