@@ -19,8 +19,9 @@ Tham số override:
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.conditions import IfCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
@@ -50,13 +51,10 @@ def generate_launch_description():
         description='Đường dẫn file cấu hình YAML của OLE LiDAR'
     )
 
-    # 2. Node OLE LiDAR (Ethernet UDP)
-    ole_node = Node(
-        package='oleros2',
-        executable='oleros2_node',
-        name='ole_lidar',
-        output='screen',
-        parameters=[ole_param_file],
+    # 2. Node OLE LiDAR (Ethernet UDP) qua package ros2_lidar
+    ole_launch_file = os.path.join(get_package_share_directory('ros2_lidar'), 'launch', 'ole2dv2_launch.py')
+    ole_node = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(ole_launch_file),
         condition=IfCondition(use_ole)
     )
 
