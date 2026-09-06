@@ -17,61 +17,79 @@ Tham số override:
 """
 
 import os
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, GroupAction
+from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    # ============================================
-    # CÁC THAM SỐ TOÀN CỤC
-    # ============================================
+    pkg_dir = get_package_share_directory('can_test_motor')
+    default_ole_config = os.path.join(pkg_dir, 'config', 'ole2dv2.yaml')
+
     use_ole = LaunchConfiguration('use_ole')
     use_rplidar = LaunchConfiguration('use_rplidar')
-    ole_ip = LaunchConfiguration('ole_ip')
+    ole_param_file = LaunchConfiguration('ole_param_file')
+
+    # 1. Khai báo Launch Arguments
+    declare_use_ole = DeclareLaunchArgument(
+        'use_ole',
+        default_value='true',
+        description='Bật/tắt cảm biến OLE LiDAR qua mạng Ethernet (true/false)'
+    )
+    declare_use_rplidar = DeclareLaunchArgument(
+        'use_rplidar',
+        default_value='false',
+        description='Bật/tắt cảm biến RPLidar qua cổng USB (true/false)'
+    )
+    declare_ole_config = DeclareLaunchArgument(
+        'ole_param_file',
+        default_value=default_ole_config,
+        description='Đường dẫn file cấu hình YAML của OLE LiDAR'
+    )
+
+    # 2. Node OLE LiDAR (Ethernet UDP)
+    ole_node = Node(
+        package='oleros2',
+        executable='oleros2_node',
+        name='ole_lidar',
+        output='screen',
+        parameters=[ole_param_file],
+        condition=IfCondition(use_ole)
+    )
+
+    # 3. Node RPLidar (USB Serial)
+    rplidar_node = Node(
+        package='sllidar_ros2',
+        executable='sllidar_node',
+        name='rplidar_node',
+        output='screen',
+        parameters=[{
+            'serial_port': '/dev/ttyUSB0',
+            'serial_baudrate': 115200,
+            'frame_id': 'laser_frame',
+        }],
+        condition=IfCondition(use_rplidar)
+    )
+
+    # 4. Static TF Publisher: base_link -> laser_frame (Vị trí lắp LiDAR trên xe)
+    static_tf_node = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='base_link_to_laser_tf',
+        output='screen',
+        arguments=['--x', '0.20', '--y', '0.0', '--z', '0.15',
+                   '--yaw', '0.0', '--pitch', '0.0', '--roll', '0.0',
+                   '--frame-id', 'base_link', '--child-frame-id', 'laser_frame']
+    )
 
     return LaunchDescription([
-        # ============================================
-        # THAM SỐ CẤU HÌNH
-        # ============================================
-        DeclareLaunchArgument('use_ole', default_value='true', description='Bật OLE LiDAR (true/false)'),
-        DeclareLaunchArgument('use_rplidar', default_value='false', description='Bật RPLidar qua USB (true/false)'),
-        DeclareLaunchArgument('ole_ip', default_value='192.168.1.101', description='IP của OLE LiDAR'),
-
-        # ============================================
-        # OLE LIDAR (Ethernet)
-        # ============================================
-        GroupAction([
-            IfCondition(IfCondition.value_if_true(use_ole)),
-            Node(
-                package='oleros2',
-                executable='oleros2_node',
-                name='ole_lidar',
-                output='screen',
-                parameters=[
-                    {'ip_address': ole_ip},
-                    {'frame_id': 'laser_frame'},
-                ],
-            ),
-        ]),
-
-        # ============================================
-        # RPLIDAR (USB Serial)
-        # ============================================
-        GroupAction([
-            IfCondition(IfCondition.value_if_true(use_rplidar)),
-            Node(
-                package='sllidar_ros2',
-                executable='sllidar_node',
-                name='rplidar_node',
-                output='screen',
-                parameters=[
-                    {'serial_port': '/dev/ttyUSB0'},
-                    {'serial_baudrate': 115200},  # ← Chọn đúng baud theo model
-                    {'frame_id': 'laser_frame'},
-                ],
-            ),
-        ]),
+        declare_use_ole,
+        declare_use_rplidar,
+        declare_ole_config,
+        ole_node,
+        rplidar_node,
+        static_tf_node
     ])

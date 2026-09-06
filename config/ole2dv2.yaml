@@ -12,6 +12,30 @@ ole2d:
     ip_address: "192.168.1.101"          # IP tĩnh của OLE (khác STM32 192.168.1.100)
     subnet_mask: "255.255.255.0"         # Subnet /24
     gateway: "192.168.1.1"               # Gateway (nếu cần)
+
+ole_lidar:
+  ros__parameters:
+    ip_address: "192.168.1.101"
+    subnet_mask: "255.255.255.0"
+    gateway: "192.168.1.1"
+    udp_port: 60001
+    frame_id: "laser_frame"
+    rpm: 10.0
+    scan_frequency: 10.0
+    range_min: 0.15
+    range_max: 12.0
+    angle_min: -3.14159265358979
+    angle_max: 3.14159265358979
+    scan_time: 0.1
+    angle_increment: 0.00872665
+    enable_intensity: true
+    enable_filtering: true
+    filter_min_range: 0.15
+    filter_max_range: 12.0
+    timestamp_type: 0
+    model_name: "OLE Oleros2"
+    serial_number: "00000000"
+    firmware_version: "V1.00"
     
     # ============================================
     # GIAO THỨC - CẤU HÌNH CƠ BẢN

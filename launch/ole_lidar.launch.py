@@ -34,7 +34,19 @@ def generate_launch_description():
         parameters=[LaunchConfiguration('param_file')],
     )
 
+    # 2. Static TF: base_link -> laser_frame (Vị trí lắp LiDAR trên xe)
+    static_tf_node = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='base_link_to_laser_tf',
+        output='screen',
+        arguments=['--x', '0.20', '--y', '0.0', '--z', '0.15',
+                   '--yaw', '0.0', '--pitch', '0.0', '--roll', '0.0',
+                   '--frame-id', 'base_link', '--child-frame-id', 'laser_frame']
+    )
+
     return LaunchDescription([
         param_file_arg,
         ole_node,
+        static_tf_node,
     ])
