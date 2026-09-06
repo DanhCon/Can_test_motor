@@ -4,7 +4,7 @@ bno055_node:
     connection_type: "i2c"
     i2c_bus: 1                   # Jetson TX2 Pin 27/28 (Bus 1)
     i2c_addr: 40                 # 0x28 hex = 40 dec (Integer)
-    data_query_frequency: 50     # 50 Hz (Kieu INTEGER, khong ghi 50.0)
+    data_query_frequency: 50     # 50 Hz (Kieu INTEGER)
     calib_status_frequency: 0.1  # 0.1 Hz (Kieu DOUBLE)
     frame_id: "imu_link"
     operation_mode: 12           # 12 = 0x0C = NDOF mode (Integer)
@@ -16,13 +16,13 @@ bno055_node:
     gyr_factor: 900.0
     grav_factor: 100.0
 
-    # Offsets ban dau dat false de calib
-    set_offsets: false
-    offset_acc: [0, 0, 0]
-    offset_mag: [0, 0, 0]
-    offset_gyr: [0, 0, 0]
+    # Offsets thuc te da calib (ngay 06/09/2026 tren xe moi)
+    set_offsets: true
+    offset_acc: [65503, 2, 65501]
     radius_acc: 1000
-    radius_mag: 680
+    offset_mag: [65341, 366, 65232]
+    radius_mag: 453
+    offset_gyr: [0, 65534, 65535]
 
 bno055:
   ros__parameters:
@@ -30,7 +30,7 @@ bno055:
     connection_type: "i2c"
     i2c_bus: 1
     i2c_addr: 40
-    data_query_frequency: 50     # 50 Hz INTEGER
+    data_query_frequency: 50
     calib_status_frequency: 0.1
     frame_id: "imu_link"
     operation_mode: 12
@@ -41,9 +41,9 @@ bno055:
     gyr_factor: 900.0
     grav_factor: 100.0
 
-    set_offsets: false
-    offset_acc: [0, 0, 0]
-    offset_mag: [0, 0, 0]
-    offset_gyr: [0, 0, 0]
+    set_offsets: true
+    offset_acc: [65503, 2, 65501]
     radius_acc: 1000
-    radius_mag: 680
+    offset_mag: [65341, 366, 65232]
+    radius_mag: 453
+    offset_gyr: [0, 65534, 65535]

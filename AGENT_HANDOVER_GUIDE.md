@@ -208,3 +208,331 @@ Can_test_motor/
 5. **Quy tắc Duy trì & Đọc lại Tài liệu này (BẮT BUỘC):**
    - **Đọc trước khi làm:** Mỗi khi bắt đầu một phiên làm việc hoặc chuẩn bị sửa đổi code, Agent **phải lướt qua file này trước** để nắm bắt nhanh các thông số chuẩn, các quyết định kiến trúc và các "hố sâu" cấm kỵ.
    - **Cập nhật sau khi làm:** Bất kỳ khi nào có thay đổi về tính năng, thông số cơ khí, thêm mã lỗi, hoặc giải quyết một bài toán mới, Agent **phải cập nhật ngay vào file này** để tài liệu luôn phản ánh chính xác trạng thái mới nhất của hệ thống.
+6. **Quy tắc Bàn giao khi Sắp hết Quota/Token (BẮT BUỘC):**
+   - Khi Agent nhận thấy sắp hết quota (lỗi 429, `FreeUsageLimitError`), context dài, hoặc người dùng báo `sắp hết`, Agent **phải ghi chú ngay** công việc đang dở vào `Mục 9` bên dưới trước khi dừng.
+   - Không được thoát phiên mà không để lại: đang làm gì, sửa tới đâu, bước tiếp theo là gì.
+
+---
+
+## 📌 9. NHẬT KÝ BÀN GIAO LIVE (AGENT GHI NỐI TIẾP VÀO ĐÂY)
+
+> **Hướng dẫn cho Agent:** Mỗi lần bàn giao thì copy khung dưới, điền ngày giờ, điền nội dung, đặt lên ĐẦU mục 9 (mới nhất lên trên). Giữ tối đa 5 entry gần nhất, entry cũ hơn thì xóa tóm tắt gọn 1 dòng.
+
+### Template (copy khi bàn giao):
+```markdown
+#### [YYYY-MM-DD HH:MM] - <Tên Agent/Model> - <Tóm tắt 1 dòng>
+- **Trạng thái hiện tại:** Đang làm gì, tới bước nào, kết quả ra sao?
+- **File đã sửa:** Liệt kê file + dòng/hàm đã chạm vào (VD: `Core/Src/zlac_can.c:_TPDO1_Config`, `scripts/zlac_udp_odom_node.py:move_towards`).
+- **Lệnh đã chạy & kết quả:** (VD: `python -m py_compile ... OK`, `ping 192.168.1.100 <1ms`, `ros2 launch ... lỗi gì`).
+- **Việc còn dở / Bước tiếp theo:** Agent sau cần làm gì cụ thể (1, 2, 3...).
+- **Cách verify nhanh:** Lệnh kiểm tra để biết đã xong chưa.
+- **Lưu ý / Hố mới phát hiện:** Nếu có.
+---
+```
+
+### Lịch sử bàn giao:
+<!-- Agent mới ghi tiếp vào dưới dòng này, entry mới nhất lên trên cùng -->
+
+#### [2026-09-06 16:25] - Antigravity (Gemini 3.8 Flash) - Hoàn thành Hiệu chuẩn IMU BNO055 và Lưu Offsets
+- **Trạng thái hiện tại:** Hiệu chuẩn thực tế BNO055 trên Jetson TX2 thành công xuất sắc (3,3,3,3). Đã gọi service trích xuất mảng offsets thực tế và lưu vĩnh viễn vào `config/bno055_params_i2c.yaml`, bật `set_offsets: true`.
+- **Thông số offsets thực tế đo được (2026-09-06):**
+  - `offset_acc: [65503, 2, 65501]`, `radius_acc: 1000`
+  - `offset_mag: [65341, 366, 65232]`, `radius_mag: 453`
+  - `offset_gyr: [0, 65534, 65535]`
+- **File đã sửa:** `config/bno055_params_i2c.yaml`
+- **Bước tiếp theo:** Khởi động lại launch file để xác nhận cảm biến tự nạp offsets ngay khi bật nguồn mà không cần múa lại, sau đó chuyển sang tích hợp bộ lọc EKF / Nav2.
+- **Cách verify nhanh:** `ros2 launch can_test_motor bno055.launch.py` -> log hiển thị `Current sensor offsets` khớp với các giá trị trên.
+---
+
+#### [2026-09-06 08:50] - Antigravity (Gemini 3.8 Flash) - Cấu hình IMU BNO055 (50Hz I2C), Launch File và Bộ lọc EKF
+- **Trạng thái hiện tại:** Đã tạo toàn bộ file cấu hình và launch chuẩn cho BNO055 + EKF robot_localization trong `Can_test_motor`. Sẵn sàng đấu nối I2C và test trên Jetson TX2.
+- **File đã tạo/sửa:** 
+  - `config/bno055_params_i2c.yaml`: Cấu hình driver BNO055 chạy 50Hz, NDOF mode, bus 1, addr 0x28, `set_offsets: false` cho bước calib ban đầu.
+  - `launch/bno055.launch.py`: Khởi động node `bno055` và `static_transform_publisher` (`base_link -> imu_link`).
+  - `config/ekf.yaml`: Cấu hình bộ lọc EKF 50Hz dung hợp `/odom` (vận tốc vx) và `/bno055/imu` (hướng yaw + vận tốc góc vyaw).
+- **Lệnh đã chạy & kết quả:** `python -m py_compile launch/bno055.launch.py` thành công 100% không lỗi cú pháp.
+- **Việc còn dở / Bước tiếp theo:** 
+  1. Đấu dây I2C từ BNO055 sang J21 Jetson TX2 (Pin 1: 3.3V, Pin 27: SDA, Pin 28: SCL, Pin 9: GND; COM3=GND).
+  2. Chạy `sudo i2cdetect -y -r 1` kiểm tra địa chỉ `0x28`.
+  3. Chạy launch BNO055, thực hiện quy trình xoay cảm biến để hiệu chuẩn 3-3-3-3.
+  4. Gọi service `/bno055/calibration_request` lấy offsets mới cập nhật vào `config/bno055_params_i2c.yaml` và bật `set_offsets: true`.
+  5. Chạy EKF và kiểm tra `/odometry/filtered`.
+- **Cách verify nhanh:** `ros2 topic hz /bno055/imu` (đạt 50Hz ổn định) và `ros2 topic echo /bno055/calib_status`.
+---
+
+---
+
+## 🔄 10. TỔNG HỢP REPO CŨ EIU-FABLAB-AMR & KẾ HOẠCH CHUYỂN GIAO (2026-09-06)
+
+> **Nguồn:** https://github.com/NhatTran-97/EIU-FABLAB-AMR/tree/main/nhatbot_drivers
+> **Mục tiêu user:** Chuyển giao hệ cũ (Modbus) sang hệ mới (CAN + Ethernet UDP). Chốt hướng 2 (dùng `zlac_udp_odom_node` chuẩn `/cmd_vel` -> `/odom`), hiện tại CHỈ tổng hợp, CHƯA code.
+
+### 10.1 Hệ cũ có gì (Modbus RTU trực tiếp, không gateway)
+- Kiến trúc: `PC --USB-RS485 Modbus RTU 115200, slave 1--> ZLAC8015D`.
+- `zlac8015d_driver/` (ROS2 C++ Modbus trực tiếp):
+  - `src/zlac8015d_driver.cpp`: `modbus_new_rtu("/dev/zlac_8015d", 115200)`, timeout 1s. API: `setRPM / getRPM (/10) / getWheelsTravelled (0x20A7 4 regs) / getBatteryVoltage (*0.01) / getMotor-DriverTemp / getMotorFaults / enable(0x08)-disable(0x07)-eStop(0x05)-clearAlarm(0x06)`.
+  - `src/zlac_interfaces.cpp`: node `zlac_driver_node` sub `/nhatbot/wheel_rotational_vel Float32MultiArray rad/s` -> RPM -> `setRPM(-left, right)`, pub `/nhatbot/JointState` 10Hz (đang comment, không pub thực), service reset encoder.
+  - Thanh ghi: `0x200E control, 0x200D mode (1 rel/2 abs/3 vel), 0x2080/2081 accel, 0x2082/2083 decel, 0x2088/2089 cmd RPM, 0x20AB/AC fb RPM, 0x20A1 voltage, 0x20A4/0x20B0 temp, 0x2005 clear pos, 0x20A5/A6 fault`.
+  - Params (`node_parameters.hpp`): `modbus_port /dev/zlac_8015d, baud 115200, accel/decel 1000ms, max_rpm 200, cpr 4096, wheel_radius 0.0535, travel_in_one_rev 0.336`.
+- `nhatbot_firmware/` (bản ros2_control chạy Nav2):
+  - `src/nhatbot_hw_interface.cpp`: `NhatbotInterface : SystemInterface`, export `position+velocity state / velocity command`, `read()` lấy pos rad + vel rad/s, `write()` đổi rad/s -> RPM.
+  - `include/.../driver_manager.hpp`: singleton + mutex bọc `ZLAC8015D_SDK`, `init()` = `enable + mode SPEED_RPM + accel 100 / decel 100`.
+  - `src/zlac_sdk.cpp`: bản SDK đầy đủ, `modbus_fail_read_handler retry 3 lần`, `autoReconnect/healthCheck`, đảo chiều `setRPM(left, -right)`, `get_wheels_tick (Left, -Right)`.
+- Vệ tinh: `bno055` IMU, `oleros2` LiDAR OLE 2D/3D (`/scan`, `laser_data_frame`), `rplidar_ros` submodule, `laser_filters/filters`, `peripheral_interfaces/voices`.
+- Nhược điểm: Modbus blocking ~10Hz, latency cao, hay rớt phải reconnect, PC dí trực tiếp driver, không watchdog cứng.
+
+### 10.2 Đối chiếu với hệ mới Can_test_motor (CAN + Ethernet)
+- Kiến trúc: `PC --UDP 50Hz--> STM32F103+W5500 (192.168.1.100:8888) --CANopen 500kbps--> ZLAC`.
+- Down 12B `AA 55 v w CRC16`, Up 22B `55 AA vel_a/b (0.1RPM) pos_a/b error current_a/b voltage`.
+- STM32 lo kinematics, watchdog 250ms tự phanh, watchdog CAN 1.5s (`0xEE01`), bảo vệ kẹt (`0xEEEE`), SDO `0x60FF` + TPDO `0x181/281/381/481` + SYNC 20ms.
+- ROS2 1 node `scripts/zlac_udp_odom_node.py`: sub `/cmd_vel`, smoother `0.8 m/s² + breakaway 0.04 m/s`, pub `/odom + TF odom->base_link + /battery_voltage` 50Hz.
+- Trùng khớp 100%: `wheel_radius 0.0535, cpr 4096, travel 0.336 (=2*pi*R)`, cùng mode vel RPM, cùng đảo chiều motor B.
+- Khác biệt: `max_rpm 200` cũ vs `1.5 m/s (~90 RPM)` mới; `accel 1000/100ms` cũ vs `700/900ms + smoother` mới; topic `/nhatbot/*` cũ vs `/cmd_vel /odom` mới; fault Modbus regs cũ vs `error_code 0xEEEE/0xEE01` mới.
+
+### 10.3 Kế hoạch chuyển giao (hướng 2, chưa code)
+1. Giữ tầng trên: Nav2/SLAM, OLE/rplidar, BNO055, voices. Bỏ `zlac8015d_driver + nhatbot_hw_interface/DriverManager` Modbus.
+2. Thay chân đế: `diff_drive_controller` xuất `/cmd_vel` cắm vào `zlac_udp_odom_node`; lấy `/odom` từ UDP node trả về cho Nav2/EKF thay `JointState` cũ.
+3. Mapping khi code: copy `wheel_radius/base/cpr/motor_b_reverse` sang YAML mới; viết bridge `/odom` -> `joint_states` giả nếu Nav2 còn cần + `/battery_voltage + fault` -> `/diagnostics`; đổi `modbus_port` thành `stm32_ip/port`; verify `ping 192.168.1.100 <1ms` + `ros2 topic echo /odom`; watchdog STM32 thay `tryReconnectEvery`.
+- Trạng thái: ĐÃ tổng hợp xong 2026-09-06, CHƯA sửa code nào. Agent sau đọc mục này + mục 9 rồi hỏi user `code đi?` mới làm.
+
+### 10.4 IMU BNO055 (đọc kỹ 2026-09-06, nguồn: EIU-FABLAB-AMR/nhatbot_drivers/bno055)
+- Driver ROS2 Python (gốc flynneva/bno055), Bosch BNO055 9-DOF fusion cứng.
+- File lõi: `bno055/bno055.py` (node `bno055`, 2 timer + `threading.Lock`), `bno055/sensor/SensorService.py` (`configure()` check chip ID 0xA0, UNIT_SEL 0x83, axis remap; `get_sensor_data()` burst 45B từ 0x08, normalize quaternion tay; `get_calib_status()` JSON sys/gyro/accel/mag), `bno055/params/NodeParameters.py`, `params/bno055_params_i2c.yaml` (file đang dùng), `bno055/registers.py`, `connectors/i2c.py+uart.py`, `launch/bno055.launch.py`.
+- Cấu hình đang chạy: `i2c bus 1 addr 0x28, data_query 100Hz, calib 0.1Hz, frame imu_link, mode 0x0C NDOF, placement P0, factors acc100/mag16M/gyr900/grav100, set_offsets true + offsets xe cũ`.
+- Topics: `bno055/imu, bno055/imu_raw, bno055/mag, bno055/grav, bno055/temp, bno055/calib_status`, service `bno055/calibration_request`. TF tĩnh: `base_link -> imu_link [0.175, -0.048, 0.041, 0,0,0]`.
+- Lưu ý chuyển giao: `Can_test_motor` hiện CHƯA có IMU. Bê sang phải kiểm tra lại bus I2C, đo lại TF + P0-P7, calib lại offsets (offsets cũ của xe khác), hạ 100Hz -> 50Hz nếu warn `skipping query cycle` để đồng bộ vòng UDP 50Hz. Chi tiết các bước xem hướng dẫn vận hành (user hỏi riêng, không code vội).
+
+### 10.5 Các file còn lại cần thay đổi (rà soát 2026-09-06, chưa code)
+1. **Bỏ hẳn (đặc thù Modbus):** `nhatbot_firmware` ros2_control (`nhatbot_hw_interface.cpp`, `driver_manager.hpp`, `zlac_sdk.cpp`, `motor_interfaces.xml/sensor_*.xml`, `launch/bringup_hardware_interface.launch.py`) + `zlac8015d_driver/params/motor_driver_params.yaml` (`modbus_port /dev/ttyUSB0`). Hướng 2 dùng `zlac_udp_odom_node` thẳng, không cần `controller_manager`.
+2. **Sửa `nhatbot_firmware/config/diff_drive_controller.yaml`:** giữ `wheel_separation 0.45 / wheel_radius 0.0535`; tắt 1 bên TF (`enable_odom_tf` vs `publish_tf` của UDP node, tránh double broadcast `odom->base_link`); kiểm tra lại đảo tên `left_wheel_names: [wheel_right_joint]` theo dây xe mới; nâng limits cũ (`max_velocity 0.5/accel 0.3`) lên theo xe mới (`1.5/0.8`); bỏ `SensorBroadcaster` Modbus. Giữ `update_rate 50` khớp UDP 50Hz.
+3. **Sửa `peripheral_interfaces/nhatbot_status.py`:** viết lại sub `/nhatbot/zlac_status (ZlacStatus)` + `/safety_stop` sang `/battery_voltage` + `error_code 0xEEEE/0xEE01` của UDP node; đo lại ngưỡng pin (`FULL 29.8/WARN 28.0/LOW 25.5` là của pack cũ); kiểm tra lại map chân Jetson.GPIO BOARD theo dây mới. Giữ `audio_server/client + voices/*.mp3`.
+4. **Giữ, chỉ remap:** `filters`, `laser_filters` (sửa `frame_id laser_data_frame` + `/scan`); `rplidar_ros`, `oleros2` (fix IP qua switch + `ole2dv2.yaml`); `odom_calibration/` (chạy lại lấy `wheel_multiplier`, đang 1.0).
+- Thứ tự khi code: diff_drive yaml (TF + limit) -> nhatbot_status (pin/lỗi) -> filters frame -> calib odom.
+
+### 10.6 Toàn repo EIU-FABLAB-AMR (quét root 2026-09-06, chưa code)
+- Repo cũ là full-stack AMR + tay máy (~19 packages), xe mới `Can_test_motor` hiện mới có tầng chân đế (STM32 gateway + `zlac_udp_odom_node` + teleop).
+- **Bê sang, sửa nhẹ (tầng trên, không dính Modbus):** `nhatbot_description` (URDF/meshes, đo lại xe mới + TF IMU/lidar), `nhatbot_localization` (EKF, đổi input sang `/odom` UDP 50Hz + `/bno055/imu`), `nhatbot_mapping / nhatbot_navigation / nav2` (SLAM online_async, Nav2, nav_to_pose, rviz; remap odom/scan/tf + nâng `max_vel 0.5->1.5`), `nhatbot_safety` (`/safety_stop`), `nhatbot_twist_teleop`, `differential_drive`, `nhatbot_behavior/controller/utils`, `nhatbot_msgs`, `scripts/maps/rviz` trong `nhatbot_stack`. Trigger an toàn viết lại từ `error_code 0xEEEE/0xEE01 + /battery_voltage`.
+- **Bỏ hẳn:** toàn bộ chân đế Modbus (mục 10.5) + viết lại `nhatbot_stack/launch/nhatbot_bringup.launch.py + build_map.launch.py` (đang gọi bringup Modbus cũ).
+- **Để sau:** `nhatbot_dobot_magician`, `vision_perception` (chỉ bê khi xe mới có tay máy/camera), `nhatbot_ros2_basic` demo.
+
+---
+
+## 🔭 11. CHUYỂN GIAO LIDAR (OLE Oleros2 + RPLidar) - TÀI LIỆU THAM KHẢO
+
+> **Trạng thái:** Đã nghiên cứu kỹ (2026-09-06), CHƯA code. Cần chờ user xác nhận mới bắt đầu.
+
+### 11.1 Tổng quan hệ thống LIDAR trong EIU-FABLAB-AMR
+
+Hệ cũ có **2 loại LIDAR**:
+
+| Loại | Giao thức | Topic | Cổng kết nối | Phần mềm |
+|:---|:---|:---|:---|:---|
+| **OLE Oleros2** (2D/3D) | Ethernet UDP (libpcap) | `/scan`, `/laser_data_frame` | Ethernet (cần switch) | `oleros2` ROS2 package |
+| **RPLidar** (A1/A2/A3/S1/S2...) | USB Serial (UART) | `/scan` | USB (`/dev/ttyUSB*`) | `sllidar_ros2` package |
+
+### 11.2 Vấn đề mạng - Cần Switch Ethernet có nguồn
+
+> ⚠️ **Không dùng cục chia RJ45 1→2 thụ động** (không nguồn): chỉ dùng được 1 trong 2, hạ 100 Mbps half-duplex, cắm STM32 + LiDAR cùng lúc = rớt cả 2.
+
+**Giải pháp:** Mua **switch Ethernet 5 cổng Gigabit có nguồn 5V** cho robot (~200-300k VND).
+
+**Sơ đồ mạng:**
+```
+[Jetson TX2] IP: 192.168.1.50 ─┐
+[STM32 W5500] IP: 192.168.1.100 ─┼──→ [Switch Ethernet 5P] ──→ [OLE LiDAR] IP: 192.168.1.x
+[RPLidar] USB                    ─┘          (cùng subnet /24)
+```
+
+- Cả 3 thiết bị cùng subnet `192.168.1.x/24`
+- Gói UDP STM32 (12/22 bytes × 50Hz) + LiDAR vài Mbps → switch gánh nhẹ
+- Test `ping` tất cả < 1ms
+
+### 11.3 OLE Oleros2 LiDAR - Cấu hình chi tiết
+
+#### 11.3.1 Package & Driver
+- **Repo:** `github.com/olelidar/oleros2`
+- **Giao thức:** Ethernet UDP dùng `libpcap` (bắt gói tin từ mạng)
+- **Cần file cấu hình:** `ole2dv2.yaml` (chưa đọc nội dung cụ thể trong repo cũ)
+- **Topics phát ra:**
+  - `/scan` — `sensor_msgs/LaserScan` (2D scan)
+  - `/laser_data_frame` — `sensor_msgs/PointCloud2` hoặc dạng frame riêng
+  - Có thể kèm `/imu` nếu OLE có tích hợp IMU
+
+#### 11.3.2 Cấu hình mạng OLE
+```yaml
+# ole2dv2.yaml (cấu hình mẫu - cần verify lại từ driver)
+ole2d:
+  ros__parameters:
+    ip_address: "192.168.1.x"       # IP tĩnh của OLE trên cùng subnet
+    subnet_mask: "255.255.255.0"
+    udp_port: 60001                  # Cổng UDP nhận dữ liệu (thường 60001-60002)
+    frame_id: "laser_frame"          # Frame ID của LIDAR
+    rpm: 10                          # Tốc độ quay (10 Hz mặc định)
+    scan_frequency: 10.0
+    range_min: 0.15                  # Khoảng cách tối thiểu (m)
+    range_max: 12.0                  # Khoảng cách tối đa (m)
+    angle_min: -3.14159              # Góc bắt đầu (-π)
+    angle_max: 3.14159               # Góc kết thúc (+π)
+    angle_increment: 0.00872665       # Tính từ 360° / số điểm
+    scan_time: 0.1                   # Thời gian quét 1 vòng (s)
+```
+
+#### 11.3.3 Launch file cho OLE
+```python
+# launch/ole_lidar.launch.py
+from launch import LaunchDescription
+from launch_ros.actions import Node
+
+def generate_launch_description():
+    return LaunchDescription([
+        Node(
+            package='oleros2',
+            executable='oleros2_node',
+            name='ole_lidar',
+            output='screen',
+            parameters=[
+                os.path.join(get_package_share_directory('can_test_motor'), 'config', 'ole2dv2.yaml'),
+                {'frame_id': 'laser_frame'},
+            ],
+        ),
+    ])
+```
+
+#### 11.3.4 TF cho OLE
+- Static TF: `base_link → laser_frame` (hoặc `base_link → lidar_link`)
+- Vị trí lắp đặt thực tế trên xe (x, y, z, roll, pitch, yaw) — cần đo lại
+- Ví dụ: `static_transform_publisher base_link laser_frame [x] [y] [z] [roll] [pitch] [yaw]`
+
+### 11.4 RPLidar - Cấu hình chi tiết
+
+#### 11.4.1 Package & Driver
+- **Repo ROS2:** `github.com/Slamtec/sllidar_ros2` (dành riêng cho ROS2)
+- **Repo ROS1:** `github.com/Slamtec/rplidar_ros` (không dùng cho ROS2)
+- **Giao thức:** USB Serial (UART)
+- **Baud rate theo model:**
+
+| Model | Baud rate | Launch file |
+|:---|:---|:---|
+| RPLIDAR A1, A2M8 | `115200` | `sllidar_a1_launch.py` |
+| RPLIDAR A2M7, A2M12, A3, S1 | `256000` | `sllidar_a2m7_launch.py` |
+| RPLIDAR S2, S3, S2E | `1000000` | `sllidar_s2_launch.py` |
+| RPLIDAR C1 | `460800` | `sllidar_c1_launch.py` |
+| RPLIDAR T1 | UDP network | Cấu hình IP (không phải serial) |
+
+#### 11.4.2 Build & chạy
+```bash
+# Clone package
+mkdir -p ~/rplidar_ws/src
+cd ~/rplidar_ws/src
+git clone https://github.com/Slamtec/sllidar_ros2.git
+cd ~/rplidar_ws
+source /opt/ros/humble/setup.bash
+colcon build --symlink-install
+source install/setup.bash
+
+# Chạy (ví dụ RPLIDAR A1)
+ros2 launch sllidar_ros2 sllidar_a1_launch.py \
+  serial_port:=/dev/ttyUSB0 \
+  serial_baudrate:=115200 \
+  frame_id:=laser
+```
+
+#### 11.4.3 Verify
+```bash
+ros2 topic list                  # Phải thấy /scan
+ros2 topic echo /scan --once     # Xem dữ liệu LaserScan
+ros2 topic hz /scan              # Kiểm tra tần số
+```
+
+### 11.5 Laser Filters (lọc dữ liệu LIDAR)
+
+- **Package:** `laser_filters` (từ repo cũ `laser_filters/filters`)
+- **Mục đích:** Lọc bỏ các điểm không mong muốn (gần xe quá gần, tự thân robot)
+- **Cần sửa:** `frame_id` sang `laser_data_frame` + remap `/scan`
+- **Cấu hình filter mẫu:**
+
+```yaml
+# laser_filters.yaml
+scan_filter_chain:
+  - name: range_filter_limiter
+    type: "laser_filters/RangeFilterLimits"
+    params:
+      lower_threshold: 0.15
+      upper_threshold: 12.0
+      filtering_frame: "laser_frame"
+  - name: scan_sharp_edges
+    type: "laser_filters/ScanShimmering"
+    params:
+      window_size: 5
+      tolerance: 0.01
+```
+
+### 11.6 Tích hợp LIDAR với EKF (robot_localization)
+
+Khi đã có `/scan` từ LIDAR, cần tích hợp vào EKF để nâng chất lượng định vị:
+
+```yaml
+# Bổ sung vào config/ekf.yaml hiện tại:
+ekf_filter_node:
+  ros__parameters:
+    # ... các config hiện có (odom0, imu0) ...
+    
+    # 3. Nguồn dữ liệu 3: LIDAR scan matching (nếu dùng scan_matching)
+    # laser_scan0: /scan
+    # laser_scan0_config: [false, false, false, false, false, true, false, false, false, false, false, true, false, false, false]
+    # laser_scan0_queue_size: 10
+```
+
+> **Lưu ý:** LIDAR 2D chỉ cung cấp `LaserScan` (không phải odometry). Để dùng làm nguồn EKF cần có `rf2o_laser_odometry` hoặc `slam_toolbox` để chuyển scan → odometry. Hoặc EKF hiện tại đã đủ với `/odom` (UDP) + `/bno055/imu`.
+
+### 11.7 Sơ đồ tổng thể hệ thống LIDAR khi hoàn thiện
+
+```
+[Jetson TX2 - 192.168.1.50]
+     │
+     ├── [Switch Ethernet 5P] ── [STM32 192.168.1.100:8888] ── CAN ── [ZLAC] ── [2 Motor]
+     │                           (UDP 50Hz, 12/22 bytes)
+     │                           └── [OLE LiDAR 192.168.1.x] ── Ethernet ── /scan, /laser_data_frame
+     │                           └── [RPLidar USB] ── USB ── /scan
+     │
+     ├── [BNO055 IMU] ── I2C ── /bno055/imu
+     │
+     └── [EKF] ── Nguồn: /odom (UDP) + /bno055/imu (+ /scan nếu dùng laser_odom)
+              └── /odometry/filtered → Nav2 / SLAM
+```
+
+### 11.8 Thứ tự thực hiện khi code LIDAR
+
+1. **Bước 1:** Mua/setup Ethernet switch + cấu hình IP tĩnh cho OLE
+2. **Bước 2:** Build `sllidar_ros2` cho RPLidar, test `/scan` trên USB
+3. **Bước 3:** Build/setup `oleros2` cho OLE, test `/scan` qua Ethernet
+4. **Bước 4:** Tạo `ole2dv2.yaml` cấu hình, thử nghiệm với `ros2 topic echo /scan`
+5. **Bước 5:** Tạo launch file tổng hợp cho LIDAR
+6. **Bước 6:** Thêm TF static `base_link → laser_frame`
+7. **Bước 7:** Tích hợp `laser_filters` nếu cần
+8. **Bước 8:** Remap topics trong Nav2/SLAM launch file (`/scan`, `/map`)
+9. **Bước 9:** Calib odom thực tế (`odom_calibration`)
+
+### 11.9 Các file LIDAR trong repo cũ cần lấy sang
+
+| File/Package | Mục đích | Trạng thái |
+|:---|:---|:---|
+| `oleros2/` (toàn package) | Driver OLE LiDAR | Cể clone từ GitHub + build |
+| `rplidar_ros` / `sllidar_ros2` | Driver RPLidar | Cể clone từ GitHub + build |
+| `laser_filters/` | Lọc dữ liệu scan | Copy + sửa frame_id |
+| `ole2dv2.yaml` | Config OLE LiDAR | Cần tìm/đọc trong repo cũ |
+| `nhatbot_description` | URDF + meshes (gắn LIDAR) | Đo lại TF lắp LIDAR trên xe mới |
+| `laser_data_frame` TF | Frame ID cho LIDAR | Cần cấu hình |
+| `odom_calibration/` | Hiệu chỉnh wheel_multiplier | Chạy lại trên xe thực |
+
+### 11.10 Ghi chú tìm hiểu từ Web (2026-09-06)
+
+- **OLE Oleros2:** Sử dụng libpcap để bắt gói tin UDP từ Ethernet. Cấu hình IP tĩnh. Phát dữ liệu dạng `LaserScan` và có thể `PointCloud2` cho 3D.
+- **RPLidar ROS2:** Dùng package chính thức `sllidar_ros2`. Lưu ý phân biệt baud rate theo model. Đừng nhầm `rplidar_ros` (ROS1/catkin) với `sllidar_ros2` (ROS2/colcon).
+- **Cả 2 LiDAR đều dùng frame_id riêng** (`laser_frame` hoặc `laser_link`), cần static TF từ `base_link`.
+- **OLE LiDAR có thể có IMU tích hợp** — kiểm tra datasheet để confirm nếu cần dùng cho fuse EKF thêm.
+- **Switch Ethernet có nguồn 5V** là bắt buộc vì OLE LiDAR cần cấp nguồn qua Ethernet (PoE) hoặc nguồn riêng.
+
+---
+
+## 📌 9. NHẬT KÝ BÀN GIAO LIVE (AGENT GHI NỐI TIẾP VÀO ĐÂY)
