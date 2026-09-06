@@ -272,6 +272,20 @@ Can_test_motor/
 ### Lịch sử bàn giao:
 <!-- Agent mới ghi tiếp vào dưới dòng này, entry mới nhất lên trên cùng -->
 
+#### [2026-09-06 17:13] - Antigravity (Gemini 3.8 Flash) - Tối ưu tần số EKF xuống 30Hz cho Jetson TX2
+- **Hiện tượng lỗi:** `[ekf_node-4] Failed to meet update rate! Took 0.023478s / 0.020229s`. Chu kỳ 50Hz (20.0ms) bị quá tải nhẹ (~2-3ms) do năng lực tính toán CPU ARM Cortex-A57 trên Jetson TX2.
+- **Giải pháp & File đã sửa:**
+  - `config/ekf.yaml`: Hạ `frequency: 30.0` (chu kỳ 33.3ms, dư 10-13ms headroom an toàn cho Jetson TX2 tính toán), tắt `print_diagnostics: false` để giảm overhead CPU.
+  - Cảm biến đầu vào vẫn giữ nguyên 50Hz (UDP STM32 50Hz + BNO055 50Hz), EKF nhận đủ toàn bộ các gói tin và cập nhật ma trận với tốc độ 30Hz mượt mà cho Nav2.
+- **Cách verify nhanh:**
+  ```bash
+  cd /home/nhatbot_ws/src/can_test_motor && git pull origin main
+  cd /home/nhatbot_ws && colcon build --packages-select can_test_motor --symlink-install && source install/setup.bash
+  ros2 launch can_test_motor ekf.launch.py
+  ```
+  -> Sạch bóng cảnh báo `Failed to meet update rate!`, `/odometry/filtered` ổn định ở 30Hz.
+---
+
 #### [2026-09-06 17:10] - Antigravity (Gemini 3.8 Flash) - Kích hoạt Bộ lọc Dung hợp Cảm biến EKF (robot_localization)
 - **Trạng thái hiện tại:** Đã xây dựng hoàn chỉnh hệ thống dung hợp EKF 50Hz kết hợp Odometry bánh xe và IMU BNO055.
   - Tạo launch file tổng hợp `launch/ekf.launch.py`: Khởi chạy đồng bộ BNO055 (50Hz NDOF), Static TF `base_link -> imu_link`, `zlac_udp_odom_node` với `publish_tf: False`, bộ lọc `robot_localization/ekf_node` nạp `config/ekf.yaml`, và cụm điều khiển tay cầm gamepad (tùy chọn, mặc định bật).
