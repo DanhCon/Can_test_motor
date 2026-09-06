@@ -1,4 +1,4 @@
-﻿### Cấu hình bộ lọc dung hợp cảm biến Extended Kalman Filter (robot_localization)
+### Cấu hình bộ lọc dung hợp cảm biến Extended Kalman Filter (robot_localization)
 ### Dung hợp Odometry bánh xe (/odom từ zlac_udp_odom_node) và IMU 9-DOF (/bno055/imu)
 
 ekf_filter_node:

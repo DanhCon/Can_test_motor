@@ -1,4 +1,4 @@
-﻿bno055:
+bno055:
   ros__parameters:
     ros_topic_prefix: "bno055/"
     connection_type: "i2c"
