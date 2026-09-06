@@ -1,0 +1,42 @@
+﻿### Cấu hình bộ lọc dung hợp cảm biến Extended Kalman Filter (robot_localization)
+### Dung hợp Odometry bánh xe (/odom từ zlac_udp_odom_node) và IMU 9-DOF (/bno055/imu)
+
+ekf_filter_node:
+  ros__parameters:
+    frequency: 50.0                # Tần số chạy EKF (50Hz khớp với chu kỳ UDP và BNO055)
+    sensor_timeout: 0.1
+    two_d_mode: true               # Bật chế độ 2D cho robot AGV/AMR mặt sàn (khóa z, roll, pitch)
+    transform_time_offset: 0.0
+    transform_timeout: 0.0
+    print_diagnostics: true
+    debug: false
+
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: odom              # Chạy định vị cục bộ (Local EKF). Khi có SLAM/AMCL sẽ chuyển map_frame lên Nav2
+
+    # 1. Nguồn dữ liệu 1: Odometry từ encoder bánh xe (/odom)
+    odom0: /odom
+    # Ma trận cấu hình: [x, y, z, roll, pitch, yaw, vx, vy, vz, vroll, vpitch, vyaw, ax, ay, az]
+    odom0_config: [false, false, false,
+                   false, false, false,
+                   true,  false, false,   # Chỉ lấy vận tốc tịnh tiến vx
+                   false, false, false,   # KHÔNG lấy vyaw từ bánh xe vì dễ bị trượt lốp
+                   false, false, false]
+    odom0_queue_size: 10
+    odom0_differential: false
+    odom0_relative: false
+
+    # 2. Nguồn dữ liệu 2: IMU BNO055 (/bno055/imu)
+    imu0: /bno055/imu
+    # Ma trận cấu hình: [x, y, z, roll, pitch, yaw, vx, vy, vz, vroll, vpitch, vyaw, ax, ay, az]
+    imu0_config: [false, false, false,
+                  false, false, true,    # Lấy góc Yaw tuyệt đối từ thuật toán BNO055 NDOF
+                  false, false, false,
+                  false, false, true,    # Lấy vận tốc góc vyaw (Gyroscope Z)
+                  false, false, false]   # Bỏ gia tốc tuyến tính ax, ay để tránh nhiễu rung cơ khí
+    imu0_queue_size: 10
+    imu0_differential: false
+    imu0_relative: false
+    imu0_remove_gravitational_acceleration: true
