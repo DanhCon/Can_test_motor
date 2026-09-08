@@ -12,8 +12,8 @@ ZlacHardwareInterface::~ZlacHardwareInterface() {
     on_deactivate(rclcpp_lifecycle::State());
 }
 
-CallbackReturn ZlacHardwareInterface::on_init(const hardware_interface::HardwareComponentInterfaceParams &params) {
-    if (hardware_interface::SystemInterface::on_init(params) != CallbackReturn::SUCCESS) {
+CallbackReturn ZlacHardwareInterface::on_init(const hardware_interface::HardwareInfo & info) {
+    if (hardware_interface::SystemInterface::on_init(info) != CallbackReturn::SUCCESS) {
         return CallbackReturn::FAILURE;
     }
 

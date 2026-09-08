@@ -2,6 +2,7 @@
 #define CAN_TEST_MOTOR__ZLAC_HARDWARE_INTERFACE_HPP_
 
 
+#include <hardware_interface/hardware_info.hpp>
 #include <hardware_interface/system_interface.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/state.hpp>
@@ -27,7 +28,7 @@ class ZlacHardwareInterface : public hardware_interface::SystemInterface {
 public:
     ZlacHardwareInterface() = default;
     ~ZlacHardwareInterface() override;
-    CallbackReturn on_init(const hardware_interface::HardwareComponentInterfaceParams &params) override;
+    CallbackReturn on_init(const hardware_interface::HardwareInfo & info) override;
     CallbackReturn on_activate(const rclcpp_lifecycle::State &previous_state) override;
     CallbackReturn on_deactivate(const rclcpp_lifecycle::State &previous_state) override;
     std::vector<hardware_interface::StateInterface> export_state_interfaces() override;
