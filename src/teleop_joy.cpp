@@ -128,9 +128,9 @@ void GamepadTeleopNode::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
   }
   last_reset_btn_state_ = r_state;
 
-  // 3. Deadman: ho tro ca USB (index 4), Bluetooth (index 9), vi tri so 10 va tham so btn_deadman_
+  // 3. Deadman: ho tro ca USB L1 (4), L2 (6), Bluetooth (9), vi tri 10, 11 va tham so btn_deadman_
   if (enable_deadman_) {
-    bool is_deadman = (btn(btn_deadman_) == 1) || (btn(10) == 1) || (btn(4) == 1) || (btn(9) == 1);
+    bool is_deadman = (btn(btn_deadman_) == 1) || (btn(10) == 1) || (btn(9) == 1) || (btn(4) == 1) || (btn(6) == 1);
     if (!is_deadman) {
       v_out_ = 0.0;
       omega_out_ = 0.0;
@@ -138,8 +138,8 @@ void GamepadTeleopNode::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
     }
   }
 
-  // 4. Turbo: ho tro index 5, 11 va tham so btn_turbo_
-  const bool is_turbo = (btn(btn_turbo_) == 1) || (btn(11) == 1) || (btn(5) == 1);
+  // 4. Turbo: ho tro index 5, 7, 11 va tham so btn_turbo_
+  const bool is_turbo = (btn(btn_turbo_) == 1) || (btn(11) == 1) || (btn(5) == 1) || (btn(7) == 1);
   const double scale_lin = is_turbo ? scale_linear_turbo_ : scale_linear_normal_;
   const double scale_ang = is_turbo ? scale_angular_turbo_ : scale_angular_normal_;
 
@@ -161,6 +161,13 @@ void GamepadTeleopNode::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
 
   v_out_ = raw_lin * scale_lin;
   omega_out_ = raw_ang * scale_ang;
+
+  if (std::abs(v_out_) > 0.001 || std::abs(omega_out_) > 0.001) {
+    RCLCPP_INFO_THROTTLE(
+      this->get_logger(), *this->get_clock(), 500,
+      "[Teleop] Dang phat lenh chay: v_linear=%.2f m/s, w_angular=%.2f rad/s",
+      v_out_, omega_out_);
+  }
 }
 
 void GamepadTeleopNode::timer_callback()

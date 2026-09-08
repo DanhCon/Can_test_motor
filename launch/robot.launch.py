@@ -29,6 +29,11 @@ def generate_launch_description():
         default_value='true',
         description='Bật/tắt cụm tay cầm Gamepad (joy_node + teleop_joy)'
     )
+    enable_deadman_arg = DeclareLaunchArgument(
+        'enable_deadman',
+        default_value='true',
+        description='Bật/tắt chế độ giữ nút an toàn Deadman (false: không cần giữ nút)'
+    )
     use_bno055_arg = DeclareLaunchArgument(
         'use_bno055',
         default_value='true',
@@ -150,7 +155,7 @@ def generate_launch_description():
             'scale_angular_normal': 0.5, # Giới hạn góc 0.5 rad/s
             'scale_linear_turbo': 0.3,
             'scale_angular_turbo': 0.5,
-            'enable_deadman': True,      # Giữ nút L1 (LB) mới cho xe chạy
+            'enable_deadman': LaunchConfiguration('enable_deadman'),
             'btn_deadman': 10,           # L1 (hỗ trợ cả 10, 4, 9)
             'btn_turbo': 11,             # R1 (hỗ trợ cả 11, 5)
             'btn_estop': 1,              # Nút B (tròn): Dừng khẩn cấp
@@ -221,6 +226,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         use_joy_arg,
+        enable_deadman_arg,
         use_bno055_arg,
         use_ekf_arg,
         use_lidar_arg,
