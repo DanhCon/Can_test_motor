@@ -29,7 +29,10 @@ def generate_launch_description():
     control_node = Node(
         package='controller_manager',
         executable='ros2_control_node',
-        parameters=[controllers_file],
+        parameters=[
+            {'robot_description': robot_description},
+            controllers_file,
+        ],
         output='screen',
     )
 
@@ -37,7 +40,11 @@ def generate_launch_description():
     joint_state_broadcaster_spawner = Node(
         package='controller_manager',
         executable='spawner',
-        arguments=['joint_state_broadcaster', '--controller-manager', '/controller_manager'],
+        arguments=[
+            'joint_state_broadcaster',
+            '--controller-manager', '/controller_manager',
+            '--controller-manager-timeout', '30.0',
+        ],
         output='screen',
     )
 
@@ -45,7 +52,11 @@ def generate_launch_description():
     diff_drive_controller_spawner = Node(
         package='controller_manager',
         executable='spawner',
-        arguments=['diff_drive_controller', '--controller-manager', '/controller_manager'],
+        arguments=[
+            'diff_drive_controller',
+            '--controller-manager', '/controller_manager',
+            '--controller-manager-timeout', '30.0',
+        ],
         output='screen',
     )
 
