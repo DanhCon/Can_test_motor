@@ -44,8 +44,8 @@ def generate_launch_description():
             'scale_linear_turbo': 0.3,
             'scale_angular_turbo': 0.5,
             'enable_deadman': True,
-            'btn_deadman': 4, # Nút L1 trên tay cầm
-            'btn_turbo': 5,   # Nút R1
+            'btn_deadman': 10, # Nút Deadman trên tay cầm (hỗ trợ cả 10, 4, 9)
+            'btn_turbo': 11,   # Nút R1 (hỗ trợ cả 11, 5)
             'btn_estop': 1,   # Nút B (tròn)
             'btn_reset_odom': 3, # Nút Y (tam giác)
         }],

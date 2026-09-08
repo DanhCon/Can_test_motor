@@ -124,10 +124,12 @@ class GamepadTeleopNode(Node):
             self.last_reset_btn_state = btn_state
 
         # 3. Kiểm tra nút an toàn Deadman Switch (L1 / LB)
-        # Hỗ trợ thông minh: Tự động bắt cả khi cắm dây USB (index 4) lẫn Bluetooth (index 9)
+        # Hỗ trợ thông minh: Tự động bắt cả khi ở vị trí số 10, USB (index 4) lẫn Bluetooth (index 9)
         if self.enable_deadman:
             is_deadman = False
             if len(msg.buttons) > self.btn_deadman and msg.buttons[self.btn_deadman] == 1:
+                is_deadman = True
+            if len(msg.buttons) > 10 and msg.buttons[10] == 1:
                 is_deadman = True
             if len(msg.buttons) > 4 and msg.buttons[4] == 1:
                 is_deadman = True
@@ -140,11 +142,11 @@ class GamepadTeleopNode(Node):
                 self.omega_out = 0.0
                 return
 
-        # 4. Kiểm tra nút Turbo Boost (R1 / RB: Hỗ trợ cả index 5 lẫn index 10)
+        # 4. Kiểm tra nút Turbo Boost (R1 / RB: Hỗ trợ cả index 11 lẫn index 5)
         is_turbo = False
         if (len(msg.buttons) > self.btn_turbo and msg.buttons[self.btn_turbo] == 1) or \
-           (len(msg.buttons) > 5 and msg.buttons[5] == 1) or \
-           (len(msg.buttons) > 10 and msg.buttons[10] == 1):
+           (len(msg.buttons) > 11 and msg.buttons[11] == 1) or \
+           (len(msg.buttons) > 5 and msg.buttons[5] == 1):
             is_turbo = True
 
         scale_lin = self.scale_linear_turbo if is_turbo else self.scale_linear_normal

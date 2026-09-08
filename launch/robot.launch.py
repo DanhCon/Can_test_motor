@@ -151,8 +151,8 @@ def generate_launch_description():
             'scale_linear_turbo': 0.3,
             'scale_angular_turbo': 0.5,
             'enable_deadman': True,      # Giữ nút L1 (LB) mới cho xe chạy
-            'btn_deadman': 4,            # L1
-            'btn_turbo': 5,              # R1
+            'btn_deadman': 10,           # L1 (hỗ trợ cả 10, 4, 9)
+            'btn_turbo': 11,             # R1 (hỗ trợ cả 11, 5)
             'btn_estop': 1,              # Nút B (tròn): Dừng khẩn cấp
             'btn_reset_odom': 3,         # Nút Y (tam giác): Reset
         }],
