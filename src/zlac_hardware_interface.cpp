@@ -78,8 +78,10 @@ CallbackReturn ZlacHardwareInterface::on_deactivate(const rclcpp_lifecycle::Stat
     return CallbackReturn::SUCCESS;
 }
 
-// Luồng nền chạy độc lập: Gửi lệnh và hứng gói UDP từ STM32 liên tục
 void ZlacHardwareInterface::ioLoop() {
+    auto last_stat_time = std::chrono::steady_clock::now();
+    uint32_t tx_fail_count = 0;
+
     while (io_running_) {
         // 1. Gửi lệnh vận tốc xuống STM32
         float v, omega;
@@ -88,7 +90,9 @@ void ZlacHardwareInterface::ioLoop() {
             v = cmd_v_;
             omega = cmd_omega_;
         }
-        driver_->sendCommand(v, omega);
+        if (!driver_->sendCommand(v, omega)) {
+            tx_fail_count++;
+        }
 
         // 2. Hứng gói phản hồi Telemetry từ STM32
         ZlacFeedbackData fb;
@@ -100,6 +104,23 @@ void ZlacHardwareInterface::ioLoop() {
             current_vel_right_ = motor_b_reverse_ ? -fb.vel_right_rad_s : fb.vel_right_rad_s;
             last_rx_time_ = std::chrono::steady_clock::now();
             connection_healthy_ = true;
+
+            auto now = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::seconds>(now - last_stat_time).count() >= 2) {
+                last_stat_time = now;
+                RCLCPP_INFO(
+                    rclcpp::get_logger("ZlacHardwareInterface"),
+                    "[STM32_STAT] RX OK: err=0x%04X, vbus=%.1fV, pos_L=%d, pos_R=%d, cmd_v=%.2f",
+                    fb.error_code, fb.battery_voltage, fb.pos_left, fb.pos_right, v);
+            }
+        } else {
+            auto now = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::seconds>(now - last_stat_time).count() >= 2) {
+                last_stat_time = now;
+                RCLCPP_WARN(
+                    rclcpp::get_logger("ZlacHardwareInterface"),
+                    "[STM32_STAT] KHONG NHAN DUOC PHAN HOI UDP TU STM32! (tx_fail=%u)", tx_fail_count);
+            }
         }
 
         // Tần số 50 Hz (20ms/chu kỳ)
