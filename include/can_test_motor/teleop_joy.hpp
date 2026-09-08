@@ -52,6 +52,8 @@ private:
   double v_out_;
   double omega_out_;
   bool estop_active_;
+  bool deadman_pressed_;
+  int stop_sent_count_;
   int last_reset_btn_state_;
   int last_estop_btn_state_;
 

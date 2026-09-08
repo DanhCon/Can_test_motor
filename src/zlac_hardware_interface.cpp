@@ -149,6 +149,13 @@ hardware_interface::return_type ZlacHardwareInterface::write(const rclcpp::Time 
     float v = static_cast<float>((w_right + w_left) / 2.0 * wheel_radius_);
     float omega = static_cast<float>((w_right - w_left) / wheel_base_ * wheel_radius_);
 
+    if (std::abs(v) > 0.001f || std::abs(omega) > 0.001f) {
+        RCLCPP_INFO_THROTTLE(
+            rclcpp::get_logger("ZlacHardwareInterface"),
+            *rclcpp::Clock().get_clock(), 500,
+            "[HW_IF] Nhan lenh tu diff_drive_controller: v=%.2f m/s, omega=%.2f rad/s", v, omega);
+    }
+
     {
         std::lock_guard<std::mutex> lock(io_mutex_);
         cmd_v_ = v;

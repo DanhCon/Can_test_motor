@@ -20,6 +20,8 @@ GamepadTeleopNode::GamepadTeleopNode(const rclcpp::NodeOptions & options)
   v_out_(0.0),
   omega_out_(0.0),
   estop_active_(false),
+  deadman_pressed_(false),
+  stop_sent_count_(3),
   last_reset_btn_state_(0),
   last_estop_btn_state_(0)
 {
@@ -80,13 +82,11 @@ GamepadTeleopNode::~GamepadTeleopNode()
 
 void GamepadTeleopNode::publish_stop()
 {
-  geometry_msgs::msg::Twist stop;
-  cmd_pub_->publish(stop);
-
   geometry_msgs::msg::TwistStamped stop_stamped;
   stop_stamped.header.stamp = this->now();
   stop_stamped.header.frame_id = "base_link";
-  stop_stamped.twist = stop;
+  stop_stamped.twist.linear.x = 0.0;
+  stop_stamped.twist.angular.z = 0.0;
   cmd_stamped_pub_->publish(stop_stamped);
 }
 
@@ -129,13 +129,16 @@ void GamepadTeleopNode::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
   last_reset_btn_state_ = r_state;
 
   // 3. Deadman: ho tro ca USB L1 (4), L2 (6), Bluetooth (9), vi tri 10, 11 va tham so btn_deadman_
+  bool is_deadman = true;
   if (enable_deadman_) {
-    bool is_deadman = (btn(btn_deadman_) == 1) || (btn(10) == 1) || (btn(9) == 1) || (btn(4) == 1) || (btn(6) == 1);
-    if (!is_deadman) {
-      v_out_ = 0.0;
-      omega_out_ = 0.0;
-      return;
-    }
+    is_deadman = (btn(btn_deadman_) == 1) || (btn(10) == 1) || (btn(9) == 1) || (btn(4) == 1) || (btn(6) == 1);
+  }
+  deadman_pressed_ = is_deadman;
+
+  if (!is_deadman) {
+    v_out_ = 0.0;
+    omega_out_ = 0.0;
+    return;
   }
 
   // 4. Turbo: ho tro index 5, 7, 11 va tham so btn_turbo_
@@ -172,16 +175,37 @@ void GamepadTeleopNode::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
 
 void GamepadTeleopNode::timer_callback()
 {
-  geometry_msgs::msg::Twist cmd;
-  cmd.linear.x = v_out_;
-  cmd.angular.z = omega_out_;
-  cmd_pub_->publish(cmd);
+  bool should_publish = false;
+  if (estop_active_) {
+    v_out_ = 0.0;
+    omega_out_ = 0.0;
+  }
 
-  geometry_msgs::msg::TwistStamped cmd_stamped;
-  cmd_stamped.header.stamp = this->now();
-  cmd_stamped.header.frame_id = "base_link";
-  cmd_stamped.twist = cmd;
-  cmd_stamped_pub_->publish(cmd_stamped);
+  const bool is_active = (enable_deadman_ ? deadman_pressed_ : true) &&
+                         (std::abs(v_out_) > 0.001 || std::abs(omega_out_) > 0.001);
+
+  if (is_active) {
+    stop_sent_count_ = 0;
+    should_publish = true;
+  } else {
+    // Gui 3 lan goi tin van toc 0 de dung han, sau do ngung publish
+    // de twist_mux tu dong nha kenh joystick (timeout 0.25s) cho Nav2/cmd_vel
+    if (stop_sent_count_ < 3) {
+      v_out_ = 0.0;
+      omega_out_ = 0.0;
+      should_publish = true;
+      stop_sent_count_++;
+    }
+  }
+
+  if (should_publish) {
+    geometry_msgs::msg::TwistStamped cmd_stamped;
+    cmd_stamped.header.stamp = this->now();
+    cmd_stamped.header.frame_id = "base_link";
+    cmd_stamped.twist.linear.x = v_out_;
+    cmd_stamped.twist.angular.z = omega_out_;
+    cmd_stamped_pub_->publish(cmd_stamped);
+  }
 }
 
 void GamepadTeleopNode::call_reset_odom_service()

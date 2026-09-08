@@ -28,7 +28,7 @@ diff_drive_controller:
     left_wheel_radius_multiplier: 1.0
     right_wheel_radius_multiplier: 1.0
 
-    cmd_vel_timeout: 0.25 # Mất lệnh quá 250ms tự ngắt động cơ
+    cmd_vel_timeout: 0.5  # Mất lệnh quá 500ms tự ngắt động cơ (chống rớt gói do CPU lag)
     odom_frame_id: "odom"
     base_frame_id: "base_link"
     
