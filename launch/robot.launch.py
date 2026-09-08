@@ -3,8 +3,9 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, RegisterEventHandler, TimerAction
 from launch.conditions import IfCondition
+from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration
 from launch_ros.actions import Node
@@ -120,13 +121,17 @@ def generate_launch_description():
         output='screen',
     )
 
-    # Đợi 3.0s cho controller_manager và hardware sẵn sàng trước khi gọi spawner
-    spawners_action = TimerAction(
+    # Khởi động tuần tự: joint_state_broadcaster sau 3s, xong mới tới diff_drive_controller
+    delay_joint_state_broadcaster = TimerAction(
         period=3.0,
-        actions=[
-            joint_state_broadcaster_spawner,
-            diff_drive_controller_spawner,
-        ]
+        actions=[joint_state_broadcaster_spawner]
+    )
+
+    delay_diff_drive_controller = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=joint_state_broadcaster_spawner,
+            on_exit=[diff_drive_controller_spawner],
+        )
     )
 
     # -------------------------------------------------------------------------
@@ -253,7 +258,8 @@ def generate_launch_description():
         # 1. ros2_control hardware interface
         robot_state_publisher,
         control_node,
-        spawners_action,
+        delay_joint_state_broadcaster,
+        delay_diff_drive_controller,
 
         # 2. twist_mux
         twist_mux_node,
