@@ -33,7 +33,7 @@ class GamepadTeleopNode(Node):
         # ---------------------------------------------------------------------
         # Cấu hình Trục cần gạt (Axes)
         self.declare_parameter('axis_linear', 1)        # Cần gạt trái Y (Tiến / Lùi)
-        self.declare_parameter('axis_angular', 3)       # Cần gạt phải X (hoặc gạt trái X = 0)
+        self.declare_parameter('axis_angular', 2)       # Cần gạt phải X (hoặc gạt trái X = 0)
         self.declare_parameter('deadzone', 0.08)        # Vùng chết cần gạt (chống trôi cần)
 
         # Cấu hình Vận tốc (Giới hạn tối đa 0.3 m/s theo yêu cầu)

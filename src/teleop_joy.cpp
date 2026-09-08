@@ -24,7 +24,7 @@ GamepadTeleopNode::GamepadTeleopNode(const rclcpp::NodeOptions & options)
   last_estop_btn_state_(0)
 {
   this->declare_parameter("axis_linear", 1);
-  this->declare_parameter("axis_angular", 3);
+  this->declare_parameter("axis_angular", 2);
   this->declare_parameter("deadzone", 0.08);
 
   this->declare_parameter("scale_linear_normal", 0.3);

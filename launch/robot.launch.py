@@ -144,8 +144,8 @@ def generate_launch_description():
         name='teleop_joy_node',
         output='screen',
         parameters=[{
-            'axis_linear': 1,            # Cần gạt trái: Tiến / Lùi
-            'axis_angular': 3,           # Cần gạt phải: Quay Trái / Phải
+            'axis_linear': 1,            # Cần gạt trái: Tiến / Lùi (vị trí số 2)
+            'axis_angular': 2,           # Cần gạt phải: Quay Trái / Phải (vị trí số 3)
             'scale_linear_normal': 0.3,  # Giới hạn an toàn 0.3 m/s
             'scale_angular_normal': 0.5, # Giới hạn góc 0.5 rad/s
             'scale_linear_turbo': 0.3,

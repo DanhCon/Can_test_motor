@@ -39,6 +39,8 @@ def generate_launch_description():
         executable='teleop_joy',
         name='teleop_joy',
         parameters=[{
+            'axis_linear': 1,
+            'axis_angular': 2,
             'scale_linear_normal': 0.3,
             'scale_angular_normal': 0.5,
             'scale_linear_turbo': 0.3,
