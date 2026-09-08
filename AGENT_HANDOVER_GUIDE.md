@@ -285,6 +285,48 @@ Can_test_motor/
 ### Lịch sử bàn giao:
 <!-- Agent mới ghi tiếp vào dưới dòng này, entry mới nhất lên trên cùng -->
 
+#### [2026-09-08 18:05] - Antigravity (Gemini 3.8 Flash) — Thông suốt Full-stack ROS 2 Control (ZLAC + STM32), OLE LiDAR (15Hz), IMU BNO055 & EKF Fusion
+- **Trạng thái hiện tại:**
+  - **Động cơ (ZLAC8015D + STM32 + W5500 `192.168.1.100:8888`):** Đã thông suốt 100% qua `ros2_control` C++ hardware interface (`ZlacHardwareInterface`). Khi phát lệnh `/diff_drive_controller/cmd_vel_unstamped` hoặc gạt tay cầm, 2 bánh xe quay mượt mà, phản hồi telemetry 50Hz (trễ khứ hồi RTT 0.2ms, `err=0x0000`, `vbus=27.8V`).
+  - **LiDAR OLE 2D (`192.168.1.101:2368`):** Đã giải quyết triệt để lỗi mất tia quét, xuất bản topic `/scan` và `/scan_filtered` cực kỳ ổn định ở tần số chuẩn **15.000 Hz** (900 RPM).
+  - **IMU BNO055 & EKF Fusion:** IMU hoạt động trên bus I2C-1 (50Hz), bộ lọc Kalman mở rộng (`robot_localization`) chạy ở **15.0 Hz** (chu kỳ 66.7ms theo `config/ekf.yaml`, vừa vặn tối ưu cho CPU ARM Jetson TX2 tính ma trận $15\times15$ không bị quá tải CPU), dung hợp vận tốc bánh xe và góc xoay IMU, xuất bản ra topic **`/odometry/filtered`** (chính là Odom chuẩn cấp cho Nav2/SLAM).
+- **Các sự cố then chốt đã phát hiện & khắc phục:**
+  1. **Lỗi `Address already in use` (UDP Port 8888):** Tiến trình ROS 2 cũ khi tắt bằng Ctrl+C chưa kịp nhả port. Đã có script Python 1-dòng quét kernel `/proc/net/udp` để kill dứt điểm.
+  2. **Xung đột kiểu dữ liệu `Twist` vs `TwistStamped`:** Trên ROS 2 Humble, `twist_mux` chỉ phát `Twist`. Đã đặt `use_stamped_vel: false` trong `diff_drive_controller.yaml` và remap `cmd_vel_out` sang `/diff_drive_controller/cmd_vel_unstamped`.
+  3. **Khởi động Spawner tuần tự:** Trong `robot.launch.py`, cấu hình `RegisterEventHandler(OnProcessExit)` đảm bảo `joint_state_broadcaster` nạp xong mới kích hoạt `diff_drive_controller`, triệt tiêu lỗi timeout.
+  4. **Ma sát tĩnh & thử nghiệm:** Khi test vận tốc thấp (`0.1 - 0.3 m/s`), mô-men xoắn ban đầu tương ứng tốc độ chậm (~15-18 RPM) khó thắng ma sát sàn. Luôn **kê bổng 2 bánh** khi kiểm tra telemetry/phần mềm.
+  5. **Xung đột IP giữa LiDAR và STM32:** File `params/ole2dv2.yaml` cũ ghi nhầm `lidar_ip: 192.168.1.100` (trùng IP của STM32). Qua quét ARP (`arp -a`) tìm ra MAC thực tế của LiDAR ở `192.168.1.101`. Đã sửa toàn bộ file cấu hình về `192.168.1.101`.
+  6. **Tiến trình LiDAR ngầm chiếm cổng UDP 2368:** Diệt sạch PID cũ bị treo từ sáng bằng `kill -9`.
+  7. **Cơ chế Lifecycle của `lidar_driver`:** Node kết thúc Constructor ở `out2..` và cần sự kiện `configure` $\to$ `activate` từ `ole2dv2_launch.py` để bắt đầu quét tia laser.
+  8. **Lỗi FastRTPS SHM lock (`open_and_lock_file failed`):** Giải quyết bằng cách dọn dẹp `rm -rf /dev/shm/fastrtps*` trước mỗi lần chạy.
+- **File đã sửa / đồng bộ:**
+  - `config/diff_drive_controller.yaml`: `use_stamped_vel: false`, tăng `cmd_vel_timeout: 0.5`.
+  - `config/twist_mux_topics.yaml`: Bỏ `use_stamped: true` (chuẩn Twist).
+  - `launch/robot.launch.py`: Remap sang `/diff_drive_controller/cmd_vel_unstamped`, kích hoạt tuần tự spawner, tự dọn SHM.
+  - `src/teleop_joy.cpp` & `include/can_test_motor/teleop_joy.hpp`: Xuất bản tin `Twist` lên `/input_joy/cmd_vel`, ngắt truyền sau 3 frames dừng để nhường Nav2.
+  - `src/zlac_hardware_interface.cpp`: Log định kỳ `[STM32_STAT]` 2s, fix build `steady_clock`.
+  - `config/ole2dv2.yaml` & `params/ole2dv2.yaml`: Cập nhật `lidar_ip: 192.168.1.101`.
+  - Tạo sổ tay: `TROUBLESHOOTING_GUIDE.md`.
+- **Lệnh verify nhanh (Cheat sheet khởi động):**
+  ```bash
+  # 1. Dọn dẹp tiến trình cũ & rác SHM:
+  rm -rf /dev/shm/fastrtps*
+  kill -9 $(ps -ef | grep -E 'ros2_control_node|zlac|lidar|laser_filters|twist_mux' | grep -v grep | awk '{print $2}') 2>/dev/null
+
+  # 2. Khởi chạy toàn bộ hệ thống Robot:
+  source /home/nhatbot_ws/install/setup.bash
+  ros2 launch can_test_motor robot.launch.py enable_deadman:=false
+
+  # 3. Kiểm tra các topic đầu ra ở Terminal khác:
+  ros2 topic hz /scan                     # Đạt chuẩn ~15.0 Hz
+  ros2 topic hz /odometry/filtered        # Đạt chuẩn ~15.0 Hz (EKF Fusion tối ưu CPU TX2)
+  ros2 topic echo /diff_drive_controller/odom  # Phản hồi vận tốc bánh xe
+  ```
+- **Bước tiếp theo:**
+  1. Thử nghiệm lái xe dưới sàn với tải trọng thực tế, căn chỉnh vận tốc tối đa và gia tốc nếu cần.
+  2. Bắt đầu tích hợp Cartographer / SLAM Toolbox để quét và dựng bản đồ 2D cho nhà xưởng / phòng lab.
+---
+
 #### [2026-09-06 19:45] - OpenCode (Muse Spark) — Chuyen 2 node Python sang C++ (ament_cmake), giu Python fallback
 - **Trang thai:** Da viet xong C++ 1-1 cho ca hai node, migrate build sang `ament_cmake` theo mau `differential_drive` (EIU-FABLAB-AMR). Launch file GIU NGUYEN (executable khong doi).
 - **File moi:** `include/can_test_motor/zlac_udp_odom_node.hpp`, `src/zlac_udp_odom_node.cpp` (~500 dong Python -> C++: POSIX UDP socket + SO_RCVTIMEO 50ms, `std::thread` RX + `std::mutex` odom/comm + `atomic<bool>`, CRC16, RK2 odometry, covariance y het Python, `RCLCPP_*_THROTTLE` thay throttle Python); `include/can_test_motor/teleop_joy.hpp`, `src/teleop_joy.cpp` (deadman index 4/9, turbo 5/10, estop toggle, reset_odom client + /set_pose EKF, publish_stop khi tat).
