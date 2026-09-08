@@ -105,14 +105,15 @@ void ZlacHardwareInterface::ioLoop() {
             last_rx_time_ = std::chrono::steady_clock::now();
             connection_healthy_ = true;
 
-            auto now = std::chrono::steady_clock::now();
-            if (std::chrono::duration_cast<std::chrono::seconds>(now - last_stat_time).count() >= 2) {
-                last_stat_time = now;
-                RCLCPP_INFO(
-                    rclcpp::get_logger("ZlacHardwareInterface"),
-                    "[STM32_STAT] RX OK: err=0x%04X, vbus=%.1fV, pos_L=%d, pos_R=%d, cmd_v=%.2f",
-                    fb.error_code, fb.battery_voltage, fb.pos_left, fb.pos_right, v);
-            }
+            /* Tắt log định kỳ để giữ terminal sạch sẽ (chỉ bật khi DEBUG) */
+            // auto now = std::chrono::steady_clock::now();
+            // if (std::chrono::duration_cast<std::chrono::seconds>(now - last_stat_time).count() >= 2) {
+            //     last_stat_time = now;
+            //     RCLCPP_DEBUG(
+            //         rclcpp::get_logger("ZlacHardwareInterface"),
+            //         "[STM32_STAT] RX OK: err=0x%04X, vbus=%.1fV, pos_L=%d, pos_R=%d, cmd_v=%.2f",
+            //         fb.error_code, fb.battery_voltage, fb.pos_left, fb.pos_right, v);
+            // }
         } else {
             auto now = std::chrono::steady_clock::now();
             if (std::chrono::duration_cast<std::chrono::seconds>(now - last_stat_time).count() >= 2) {
