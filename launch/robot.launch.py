@@ -1,8 +1,9 @@
+import glob
 import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration
@@ -11,6 +12,13 @@ from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
+    # Tự động dọn dẹp file khóa Shared Memory cũ của FastDDS để tránh lỗi open_and_lock_file failed
+    for f in glob.glob('/dev/shm/fastrtps*') + glob.glob('/dev/shm/sem.fastrtps*'):
+        try:
+            os.remove(f)
+        except Exception:
+            pass
+
     pkg_dir = get_package_share_directory('can_test_motor')
 
     # Đường dẫn các file cấu hình và mô hình URDF
@@ -110,6 +118,15 @@ def generate_launch_description():
             '--controller-manager-timeout', '30.0',
         ],
         output='screen',
+    )
+
+    # Đợi 3.0s cho controller_manager và hardware sẵn sàng trước khi gọi spawner
+    spawners_action = TimerAction(
+        period=3.0,
+        actions=[
+            joint_state_broadcaster_spawner,
+            diff_drive_controller_spawner,
+        ]
     )
 
     # -------------------------------------------------------------------------
@@ -236,8 +253,7 @@ def generate_launch_description():
         # 1. ros2_control hardware interface
         robot_state_publisher,
         control_node,
-        joint_state_broadcaster_spawner,
-        diff_drive_controller_spawner,
+        spawners_action,
 
         # 2. twist_mux
         twist_mux_node,
