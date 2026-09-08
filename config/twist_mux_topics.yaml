@@ -1,0 +1,21 @@
+twist_mux:
+  ros__parameters:
+    use_stamped: true
+    topics:
+      # Mức 1: Tay cầm Gamepad (Ưu tiên cao nhất khi nhấn giữ Deadman)
+      joystick:
+        topic: /input_joy/cmd_vel
+        timeout: 0.25
+        priority: 99
+
+      # Mức 2: Bàn phím điều khiển từ xa
+      keyboard:
+        topic: /key_vel
+        timeout: 0.5
+        priority: 90
+
+      # Mức 3: Lệnh tự hành từ Nav2
+      navigation:
+        topic: /cmd_vel
+        timeout: 0.5
+        priority: 10

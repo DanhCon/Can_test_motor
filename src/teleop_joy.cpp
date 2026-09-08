@@ -57,7 +57,7 @@ GamepadTeleopNode::GamepadTeleopNode(const rclcpp::NodeOptions & options)
   rclcpp::QoS qos(10);
   cmd_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", qos);
   cmd_stamped_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
-    "/diff_drive_controller/cmd_vel", qos);
+    "/input_joy/cmd_vel", qos);
   joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
     "joy", qos,
     std::bind(&GamepadTeleopNode::joy_callback, this, std::placeholders::_1));
