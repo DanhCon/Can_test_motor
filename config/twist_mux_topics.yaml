@@ -1,6 +1,5 @@
 twist_mux:
   ros__parameters:
-    use_stamped: true
     topics:
       # Mức 1: Tay cầm Gamepad (Ưu tiên cao nhất khi nhấn giữ Deadman)
       joystick:

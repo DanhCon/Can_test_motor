@@ -57,8 +57,7 @@ GamepadTeleopNode::GamepadTeleopNode(const rclcpp::NodeOptions & options)
   this->get_parameter("publish_rate", publish_rate_);
 
   rclcpp::QoS qos(10);
-  cmd_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", qos);
-  cmd_stamped_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
+  cmd_joy_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
     "/input_joy/cmd_vel", qos);
   joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
     "/joy", rclcpp::SensorDataQoS(),
@@ -82,12 +81,10 @@ GamepadTeleopNode::~GamepadTeleopNode()
 
 void GamepadTeleopNode::publish_stop()
 {
-  geometry_msgs::msg::TwistStamped stop_stamped;
-  stop_stamped.header.stamp = this->now();
-  stop_stamped.header.frame_id = "base_link";
-  stop_stamped.twist.linear.x = 0.0;
-  stop_stamped.twist.angular.z = 0.0;
-  cmd_stamped_pub_->publish(stop_stamped);
+  geometry_msgs::msg::Twist stop;
+  stop.linear.x = 0.0;
+  stop.angular.z = 0.0;
+  cmd_joy_pub_->publish(stop);
 }
 
 void GamepadTeleopNode::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
@@ -199,12 +196,10 @@ void GamepadTeleopNode::timer_callback()
   }
 
   if (should_publish) {
-    geometry_msgs::msg::TwistStamped cmd_stamped;
-    cmd_stamped.header.stamp = this->now();
-    cmd_stamped.header.frame_id = "base_link";
-    cmd_stamped.twist.linear.x = v_out_;
-    cmd_stamped.twist.angular.z = omega_out_;
-    cmd_stamped_pub_->publish(cmd_stamped);
+    geometry_msgs::msg::Twist cmd;
+    cmd.linear.x = v_out_;
+    cmd.angular.z = omega_out_;
+    cmd_joy_pub_->publish(cmd);
   }
 }
 

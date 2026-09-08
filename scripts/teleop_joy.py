@@ -76,9 +76,8 @@ class GamepadTeleopNode(Node):
         self.estop_active = False
         self.last_reset_btn_state = 0
 
-        # Publisher cmd_vel & TwistStamped cho twist_mux
-        self.cmd_pub = self.create_publisher(Twist, 'cmd_vel', 10)
-        self.cmd_stamped_pub = self.create_publisher(TwistStamped, '/input_joy/cmd_vel', 10)
+        # Publisher cmd_vel cho twist_mux (/input_joy/cmd_vel)
+        self.cmd_joy_pub = self.create_publisher(Twist, '/input_joy/cmd_vel', 10)
 
         # Subscriber nhận dữ liệu từ joy_node
         self.joy_sub = self.create_subscription(Joy, '/joy', self.joy_callback, 10)
@@ -175,7 +174,6 @@ class GamepadTeleopNode(Node):
             )
 
     def timer_callback(self):
-        # Xuất bản tin Twist lên /cmd_vel
         cmd = Twist()
         cmd.linear.x = self.v_out
         cmd.linear.y = 0.0
@@ -183,14 +181,7 @@ class GamepadTeleopNode(Node):
         cmd.angular.x = 0.0
         cmd.angular.y = 0.0
         cmd.angular.z = self.omega_out
-        self.cmd_pub.publish(cmd)
-
-        # Xuất bản tin TwistStamped lên /input_joy/cmd_vel cho twist_mux
-        cmd_stamped = TwistStamped()
-        cmd_stamped.header.stamp = self.get_clock().now().to_msg()
-        cmd_stamped.header.frame_id = 'base_link'
-        cmd_stamped.twist = cmd
-        self.cmd_stamped_pub.publish(cmd_stamped)
+        self.cmd_joy_pub.publish(cmd)
 
     def call_reset_odom_service(self):
         # 1. Reset Odometry thô trên node zlac_udp_odom_node (STM32)

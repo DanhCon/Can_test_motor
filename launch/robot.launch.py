@@ -134,14 +134,14 @@ def generate_launch_description():
     # -------------------------------------------------------------------------
     # Đầu vào ưu tiên: Joy (/input_joy/cmd_vel: 99), Key (/key_vel: 90), Nav2 (/cmd_vel: 10)
     # Khóa an toàn: /safety_stop (priority: 255)
-    # Đầu ra điều khiển: /diff_drive_controller/cmd_vel (chuẩn TwistStamped)
+    # Đầu ra điều khiển: /diff_drive_controller/cmd_vel_unstamped (chuẩn Twist)
     twist_mux_node = Node(
         package='twist_mux',
         executable='twist_mux',
         name='twist_mux',
         output='screen',
         parameters=[topics_file, locks_file],
-        remappings=[('cmd_vel_out', '/diff_drive_controller/cmd_vel')],
+        remappings=[('cmd_vel_out', '/diff_drive_controller/cmd_vel_unstamped')],
     )
 
     # -------------------------------------------------------------------------
