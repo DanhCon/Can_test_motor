@@ -56,6 +56,8 @@ GamepadTeleopNode::GamepadTeleopNode(const rclcpp::NodeOptions & options)
 
   rclcpp::QoS qos(10);
   cmd_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", qos);
+  cmd_stamped_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
+    "/diff_drive_controller/cmd_vel", qos);
   joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
     "joy", qos,
     std::bind(&GamepadTeleopNode::joy_callback, this, std::placeholders::_1));
@@ -80,6 +82,12 @@ void GamepadTeleopNode::publish_stop()
 {
   geometry_msgs::msg::Twist stop;
   cmd_pub_->publish(stop);
+
+  geometry_msgs::msg::TwistStamped stop_stamped;
+  stop_stamped.header.stamp = this->now();
+  stop_stamped.header.frame_id = "base_link";
+  stop_stamped.twist = stop;
+  cmd_stamped_pub_->publish(stop_stamped);
 }
 
 void GamepadTeleopNode::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
@@ -161,6 +169,12 @@ void GamepadTeleopNode::timer_callback()
   cmd.linear.x = v_out_;
   cmd.angular.z = omega_out_;
   cmd_pub_->publish(cmd);
+
+  geometry_msgs::msg::TwistStamped cmd_stamped;
+  cmd_stamped.header.stamp = this->now();
+  cmd_stamped.header.frame_id = "base_link";
+  cmd_stamped.twist = cmd;
+  cmd_stamped_pub_->publish(cmd_stamped);
 }
 
 void GamepadTeleopNode::call_reset_odom_service()
