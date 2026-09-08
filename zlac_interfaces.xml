@@ -1,0 +1,9 @@
+<library path="zlac_hardware_interface">
+  <class name="can_test_motor/ZlacHardwareInterface"
+         type="can_test_motor::ZlacHardwareInterface"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      ros2_control Hardware Interface giao tiếp UDP nhị phân 50Hz tới STM32 W5500 ZLAC8015D
+    </description>
+  </class>
+</library>

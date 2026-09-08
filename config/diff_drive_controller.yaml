@@ -1,0 +1,53 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 50 # 50 Hz khớp với chu kỳ UDP của STM32
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    diff_drive_controller:
+      type: diff_drive_controller/DiffDriveController
+
+joint_state_broadcaster:
+  ros__parameters:
+    publish_rate: 50.0
+
+diff_drive_controller:
+  ros__parameters:
+    publish_rate: 50.0
+    velocity_rolling_window_size: 1
+
+    left_wheel_names: ["wheel_left_joint"]
+    right_wheel_names: ["wheel_right_joint"]
+
+    wheel_separation: 0.45
+    wheel_radius: 0.0535
+
+    wheel_separation_multiplier: 1.0
+    left_wheel_radius_multiplier: 1.0
+    right_wheel_radius_multiplier: 1.0
+
+    cmd_vel_timeout: 0.25 # Mất lệnh quá 250ms tự ngắt động cơ
+    odom_frame_id: "odom"
+    base_frame_id: "base_link"
+    
+    # Quan trọng: Đặt false vì bộ lọc EKF (robot_localization) sẽ chịu trách nhiệm phát TF odom -> base_link
+    enable_odom_tf: false
+    position_feedback: true
+    open_loop: false
+    publish_limited_velocity: true
+
+    # Ma trận hiệp phương sai sai số
+    pose_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
+    twist_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
+
+    # Giới hạn an toàn chuyển động
+    linear.x.max_velocity: 0.30
+    linear.x.min_velocity: -0.30
+    linear.x.max_acceleration: 0.60
+    linear.x.max_deceleration: -0.60
+
+    angular.z.max_velocity: 0.60
+    angular.z.min_velocity: -0.60
+    angular.z.max_acceleration: 1.20
+    angular.z.max_deceleration: -1.20

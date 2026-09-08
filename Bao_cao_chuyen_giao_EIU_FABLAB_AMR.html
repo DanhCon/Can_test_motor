@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Báo cáo chuyển giao EIU-FABLAB-AMR → Can_test_motor</title>
+<style>
+  :root { --bg:#f4f6fb; --card:#fff; --ink:#1e293b; --muted:#64748b; --acc:#2563eb; --ok:#16a34a; --warn:#d97706; --bad:#dc2626; --line:#e2e8f0; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",Arial,sans-serif; background:var(--bg); color:var(--ink); line-height:1.65; }
+  header { background:linear-gradient(135deg,#1e3a8a,#2563eb); color:#fff; padding:36px 24px; }
+  header h1 { margin:0 0 8px; font-size:26px; }
+  header p { margin:4px 0; opacity:.92; }
+  .wrap { max-width:1080px; margin:0 auto; padding:24px 16px 60px; }
+  nav.toc { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 20px; margin:-28px 0 24px; box-shadow:0 6px 18px rgba(30,58,138,.08); }
+  nav.toc b { display:block; margin-bottom:8px; }
+  nav.toc a { color:var(--acc); text-decoration:none; margin-right:14px; font-size:14px; }
+  section.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:22px 24px; margin:18px 0; box-shadow:0 2px 8px rgba(15,23,42,.05); }
+  h2 { margin-top:0; color:#1e3a8a; border-bottom:2px solid var(--line); padding-bottom:8px; font-size:21px; }
+  h3 { color:#0f172a; margin-bottom:6px; }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:14.5px; }
+  th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+  th { background:#eff6ff; }
+  code { background:#f1f5f9; padding:1px 6px; border-radius:6px; font-size:13.5px; }
+  .arch { display:flex; flex-direction:column; gap:0; margin:14px 0; }
+  .box { background:#eff6ff; border:1.5px solid var(--acc); border-radius:10px; padding:10px 14px; text-align:center; font-weight:600; }
+  .box.old { background:#fef3c7; border-color:var(--warn); }
+  .box small { display:block; font-weight:400; color:var(--muted); }
+  .arrow { text-align:center; font-size:20px; color:var(--muted); line-height:1.2; }
+  .tag { display:inline-block; font-size:12px; font-weight:700; border-radius:20px; padding:2px 12px; margin-right:6px; }
+  .keep { background:#dcfce7; color:#166534; } .fix { background:#fef9c3; color:#854d0e; } .drop { background:#fee2e2; color:#991b1b; } .later { background:#e0e7ff; color:#3730a3; }
+  ul { margin:8px 0; } li { margin:5px 0; }
+  .warn-box { background:#fffbeb; border-left:4px solid var(--warn); padding:10px 14px; border-radius:0 8px 8px 0; margin:10px 0; }
+  .ok-box { background:#f0fdf4; border-left:4px solid var(--ok); padding:10px 14px; border-radius:0 8px 8px 0; margin:10px 0; }
+  footer { text-align:center; color:var(--muted); font-size:13px; padding:20px; }
+  @media print { nav.toc { display:none; } body { background:#fff; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding:0">
+    <h1>🔄 Báo cáo chuyển giao: EIU-FABLAB-AMR → Can_test_motor</h1>
+    <p>Ngày tổng hợp: 06/09/2026 &nbsp;•&nbsp; Hướng chốt: <b>Ý 2 (dùng UDP node chuẩn)</b> — hiện tại <b>chỉ tổng hợp, chưa code</b></p>
+    <p>Nguồn repo cũ: <code>github.com/NhatTran-97/EIU-FABLAB-AMR</code> &nbsp;•&nbsp; Repo mới: <code>DanhCon/Can_test_motor</code></p>
+  </div>
+</header>
+
+<div class="wrap">
+<nav class="toc">
+  <b>Mục lục</b>
+  <a href="#s1">1. Kiến trúc 2 hệ</a>
+  <a href="#s2">2. Bảng đối chiếu</a>
+  <a href="#s3">3. Driver ZLAC Modbus cũ</a>
+  <a href="#s4">4. IMU BNO055</a>
+  <a href="#s5">5. LiDAR + mạng Ethernet</a>
+  <a href="#s6">6. File còn lại (10.5)</a>
+  <a href="#s7">7. Toàn repo (10.6)</a>
+  <a href="#s8">8. Kế hoạch</a>
+</nav>
+
+<section class="card" id="s1">
+<h2>1. Kiến trúc 2 hệ thống</h2>
+<h3>Hệ cũ — Modbus trực tiếp (không gateway)</h3>
+<div class="arch">
+  <div class="box old">PC ROS 2 (Nav2 / SLAM / ros2_control)<small>nhatbot_firmware + zlac8015d_driver (C++)</small></div>
+  <div class="arrow">⬍ USB-RS485 · Modbus RTU 115200 · slave 1 · ~10 Hz blocking</div>
+  <div class="box old">ZLAC8015D → 2 motor Hub BLDC</div>
+</div>
+<h3>Hệ mới — CAN + Ethernet UDP (có gateway STM32)</h3>
+<div class="arch">
+  <div class="box">PC ROS 2 (zlac_udp_odom_node.py)<small>/cmd_vel → UDP 12B · /odom + TF + /battery_voltage ← UDP 22B · 50 Hz</small></div>
+  <div class="arrow">⬍ UDP 192.168.1.100:8888 · W5500 SPI 4.5 Mbps</div>
+  <div class="box">STM32F103 (kinematics · watchdog 250 ms · bảo vệ kẹt 0xEEEE / mất CAN 0xEE01)<small>SDO 0x60FF · TPDO 0x181/281/381/481 · SYNC 20 ms</small></div>
+  <div class="arrow">⬍ CANopen 500 kbps (TJA1050/VP230 + trở 120 Ω)</div>
+  <div class="box">ZLAC8015D Node 0x01 → Motor A (trái) + Motor B (phải, đảo chiều)</div>
+</div>
+<div class="ok-box">Điểm trùng khớp 100%: <code>wheel_radius 0.0535 m</code>, <code>CPR 4096</code>, <code>travel 0.336 m/vòng</code>, cùng mode vận tốc RPM, cùng đảo chiều motor B.</div>
+</section>
+
+<section class="card" id="s2">
+<h2>2. Bảng đối chiếu nhanh</h2>
+<table>
+<tr><th>Hạng mục</th><th>Hệ cũ (Modbus)</th><th>Hệ mới (CAN + UDP)</th></tr>
+<tr><td>Đường truyền</td><td>USB-RS485, 115200, blocking, ~10 Hz</td><td>UDP 50 Hz + CAN 500 kbps, realtime</td></tr>
+<tr><td>Driver ROS</td><td>C++ libmodbus, <code>/dev/zlac_8015d</code></td><td>Python UDP socket, <code>192.168.1.100:8888</code></td></tr>
+<tr><td>Điều khiển</td><td>Ghi thanh ghi <code>0x2088/2089</code> RPM</td><td>Gói <code>AA 55 v w CRC16</code> → STM32 lo</td></tr>
+<tr><td>Phản hồi</td><td>Đọc <code>0x20AB/AC</code> (RPM /10), <code>0x20A7</code> pos, <code>0x20A1</code> volt</td><td>Gói 22B: vel 0.1 RPM, pos int32, error, current 0.1 A, voltage</td></tr>
+<tr><td>Odom</td><td>ros2_control + diff_drive_controller 50 Hz</td><td><code>/odom</code> Runge-Kutta + TF 50 Hz trong node Python</td></tr>
+<tr><td>Làm mượt</td><td>accel/decel driver 1000 ms / 100 ms</td><td>Smoother <code>0.8 m/s²</code> + breakaway <code>0.04 m/s</code> + driver 700/900 ms</td></tr>
+<tr><td>Giới hạn</td><td><code>max_rpm 200</code>, cmd 0.5 m/s</td><td><code>max 1.5 m/s (~90 RPM)</code></td></tr>
+<tr><td>An toàn</td><td><code>tryReconnectEvery</code>, healthCheck phần mềm</td><td>Watchdog cứng 250 ms tự phanh + watchdog CAN 1.5 s</td></tr>
+<tr><td>Lỗi</td><td>Regs <code>0x20A5/A6</code> bitfield</td><td><code>0xEEEE</code> kẹt/quá dòng, <code>0xEE01</code> mất CAN</td></tr>
+<tr><td>IMU</td><td>BNO055 I2C bus 1, 100 Hz, EKF</td><td><b>Chưa có</b> — cần bê sang</td></tr>
+<tr><td>LiDAR</td><td>OLE Ethernet + RPLidar USB</td><td>Chưa có — cần switch mạng</td></tr>
+</table>
+</section>
+
+<section class="card" id="s3">
+<h2>3. Driver ZLAC Modbus cũ (đã đọc source)</h2>
+<ul>
+<li><code>zlac8015d_driver/src/zlac8015d_driver.cpp</code> — API Modbus: <code>enable(0x08)/disable(0x07)/eStop(0x05)/clearAlarm(0x06)</code> qua <code>0x200E</code>; mode <code>0x200D</code> (1 rel / 2 abs / 3 vel); <code>setRPM</code> clamp ±max_rpm; <code>getRPM/10</code>; pos <code>0x20A7</code> 4 regs; volt <code>*0.01</code>; temp driver <code>*0.1</code>.</li>
+<li><code>zlac8015d_driver/src/zlac_interfaces.cpp</code> — node <code>zlac_driver_node</code>: sub <code>/nhatbot/wheel_rotational_vel Float32MultiArray (rad/s)</code> → RPM → <code>setRPM(-left, right)</code>; pub <code>/nhatbot/JointState</code> 10 Hz (đang comment); service reset encoder.</li>
+<li><code>nhatbot_firmware/src/nhatbot_hw_interface.cpp</code> — <code>NhatbotInterface : SystemInterface</code>: export position+velocity state / velocity command; <code>read()</code> pos rad + vel rad/s; <code>write()</code> rad/s → RPM.</li>
+<li><code>nhatbot_firmware/include/.../driver_manager.hpp</code> — singleton + mutex; <code>init() = enable + SPEED_RPM + accel 100 / decel 100</code>.</li>
+<li><code>nhatbot_firmware/src/zlac_sdk.cpp</code> — bản SDK đầy đủ: retry 3 lần, autoReconnect, <code>setRPM(left, -right)</code>, tick <code>(Left, -Right)</code>.</li>
+<li>Params: <code>modbus_port /dev/zlac_8015d, 115200, accel/decel 1000 ms, max_rpm 200, cpr 4096, R 0.0535</code>. Nhược điểm: blocking ~10 Hz, hay rớt, PC dí trực tiếp driver.</li>
+</ul>
+<div class="warn-box"><b>Kết luận:</b> bỏ toàn bộ cụm Modbus + ros2_control khi sang hệ mới (hướng 2). Không giữ code Modbus nào.</div>
+</section>
+
+<section class="card" id="s4">
+<h2>4. IMU BNO055 (đã đọc kỹ source)</h2>
+<h3>4.1 Cấu trúc driver (gốc flynneva/bno055)</h3>
+<ul>
+<li><code>bno055/bno055.py</code> — node <code>bno055</code>, 2 timer <code>read_data + calib</code> có <code>threading.Lock</code> chống đè.</li>
+<li><code>bno055/sensor/SensorService.py</code> — <code>configure()</code> check chip ID <code>0xA0</code> → CONFIG → PWR_NORMAL → UNIT_SEL <code>0x83</code> → axis remap → offsets → mode <code>0x0C NDOF</code>. <code>get_sensor_data()</code> burst <b>45 bytes từ 0x08</b>, normalize quaternion tay. <code>get_calib_status()</code> JSON <code>sys/gyro/accel/mag 0–3</code>. Service <code>calibration_request</code>.</li>
+<li>Cấu hình đang chạy (<code>params/bno055_params_i2c.yaml</code>): <code>i2c bus 1, addr 0x28, 100 Hz, calib 0.1 Hz, frame imu_link, P0, acc×100/mag×16M/gyr×900/grav×100, set_offsets=true</code> (offsets của xe cũ).</li>
+<li>Topics: <code>bno055/imu, /imu_raw, /mag, /grav, /temp, /calib_status</code>. TF tĩnh launch: <code>base_link → imu_link [0.175, -0.048, 0.041]</code>.</li>
+</ul>
+<h3>4.2 Nối trực tiếp vào TX2 có đảm bảo không?</h3>
+<div class="ok-box">Được, đủ dùng cho AMR tốc độ thấp <b>nếu</b> làm đúng: dây &lt;20 cm, xoắn SDA/SCL/GND, tránh bó dây motor, trở kéo 2.2k–4.7k, bắt đệm cao su xa nam châm, cấp đúng 3.3V I2C.</div>
+<ul>
+<li>Hạ <code>100 → 50 Hz</code> cho đồng nhịp vòng UDP 50 Hz (driver Python hay warn <code>skipping query cycle</code> trên 30 Hz).</li>
+<li>Verify: <code>i2cdetect</code> 10 lần đều thấy <code>28</code>; <code>ros2 topic hz /bno055/imu</code> ổn định; calib tới <code>3,3,3,3</code>; chạy tải 5 phút không rớt.</li>
+<li><b>Bắt buộc calib lại</b> — offsets trong yaml là của xe khác. Tắt <code>set_offsets</code> lần đầu, calib tay, gọi service lấy số mới ghi đè.</li>
+</ul>
+<h3>4.3 Các bước làm IMU (chi tiết)</h3>
+<ol>
+<li>Đấu I2C (mặc định, không nối PS1), COM3=GND → <code>0x28</code>.</li>
+<li><code>sudo apt install i2c-tools && sudo i2cdetect -y -r 1</code> phải thấy <code>28</code> (Jetson bus có thể không phải số 1).</li>
+<li>Copy package sang workspace mới, <code>pip install pyserial==3.4</code>, <code>colcon build --packages-select bno055</code>. Đổi <code>frame_id: imu_link</code>, hạ 50 Hz.</li>
+<li>Đo lại vị trí gắn → sửa static TF + <code>P0–P7</code> (sai là yaw lệch 90/180°).</li>
+<li>Calib lại từ đầu, lưu offsets mới, bật <code>set_offsets</code> lại.</li>
+<li>Fuse EKF (<code>robot_localization</code>): <code>odom0=/odom</code> + <code>imu0=/bno055/imu</code>, <code>two_d_mode=true</code>.</li>
+</ol>
+</section>
+
+<section class="card" id="s5">
+<h2>5. LiDAR + mạng Ethernet (TX2 chỉ 1 cổng)</h2>
+<div class="warn-box"><b>Không dùng cục chia RJ45 1→2 thụ động</b> (không nguồn): nó chỉ cho dùng 1 trong 2, hạ 100 Mbps half-duplex, cắm STM32 + LiDAR cùng lúc là rớt cả 2.</div>
+<div class="ok-box">Mua <b>switch Ethernet 5 cổng Gigabit có nguồn (loại 5V cho robot)</b> ~200–300k. Sơ đồ: TX2 <code>192.168.1.50</code> + STM32 <code>192.168.1.100:8888</code> + LiDAR OLE <code>192.168.1.x</code> cùng cắm vào switch, cùng subnet <code>/24</code>. Gói UDP của bạn chỉ 12/22 B × 50 Hz, LiDAR vài Mbps — switch gánh nhẹ.</div>
+<ul>
+<li>Đặt IP tĩnh cùng dải, test <code>ping</code> cả 2 đều <code>&lt;1 ms</code>.</li>
+<li>OLE LiDAR (<code>oleros2</code>, dùng <code>libpcap</code>) chạy Ethernet → bắt buộc qua switch. RPLidar chạy USB thì cắm trực tiếp, không ảnh hưởng.</li>
+<li>Phương án B (không thích switch): USB-to-Ethernet dongle làm NIC thứ 2 — phải chia 2 subnet + route, rắc rối hơn.</li>
+</ul>
+</section>
+
+<section class="card" id="s6">
+<h2>6. Các file còn lại cần thay đổi (mục 10.5)</h2>
+<table>
+<tr><th>Nhóm</th><th>Nội dung</th></tr>
+<tr><td><span class="tag drop">BỎ</span></td><td>Toàn bộ ros2_control Modbus: <code>nhatbot_hw_interface.cpp</code>, <code>driver_manager.hpp</code>, <code>zlac_sdk.cpp</code>, <code>motor_interfaces.xml / sensor_*.xml</code>, <code>bringup_hardware_interface.launch.py</code>, <code>motor_driver_params.yaml</code>.</td></tr>
+<tr><td><span class="tag fix">SỬA</span> <code>diff_drive_controller.yaml</code></td><td>Giữ <code>separation 0.45 / R 0.0535 / update 50 Hz</code>. Tắt 1 bên TF (<code>enable_odom_tf</code> vs <code>publish_tf</code> UDP — tránh double <code>odom→base_link</code>). Kiểm tra lại đảo tên <code>left→wheel_right_joint</code>. Nâng limit <code>0.5/0.3 → 1.5/0.8</code>. Bỏ <code>SensorBroadcaster</code>.</td></tr>
+<tr><td><span class="tag fix">SỬA</span> <code>nhatbot_status.py</code></td><td>Viết lại sub <code>/nhatbot/zlac_status + /safety_stop</code> → <code>/battery_voltage + error 0xEEEE/0xEE01</code>. Đo lại ngưỡng pin (cũ <code>29.8/28.0/25.5</code>). Kiểm tra lại chân Jetson.GPIO BOARD. Giữ <code>audio + voices/*.mp3</code>.</td></tr>
+<tr><td><span class="tag keep">GIỮ</span></td><td><code>filters</code>, <code>laser_filters</code> (sửa frame <code>laser_data_frame</code> + <code>/scan</code>); <code>rplidar_ros</code>, <code>oleros2</code> (IP qua switch); <code>odom_calibration/</code> (chạy lại, đang ×1.0).</td></tr>
+</table>
+</section>
+
+<section class="card" id="s7">
+<h2>7. Toàn repo EIU-FABLAB-AMR (mục 10.6)</h2>
+<p>Repo cũ là <b>full-stack AMR + tay máy (~19 packages)</b>; xe mới hiện mới có tầng chân đế. Đáng bê nhất là <b>tầng Nav2/SLAM/localization + description + safety</b>:</p>
+<ul>
+<li><span class="tag keep">GIỮ</span> <code>nhatbot_description</code> (URDF — đo lại xe mới), <code>nhatbot_localization</code> (EKF), <code>nhatbot_mapping / nhatbot_navigation / nav2</code> (SLAM online_async, Nav2, nav_to_pose, rviz), <code>nhatbot_safety</code>, <code>nhatbot_twist_teleop</code>, <code>differential_drive</code>, <code>behavior/controller/utils</code>, <code>nhatbot_msgs</code>, <code>stack/scripts/maps/rviz</code>.</li>
+<li><span class="tag drop">BỎ</span> chân đế Modbus + viết lại <code>nhatbot_bringup.launch.py / build_map.launch.py</code> (đang gọi bringup cũ).</li>
+<li><span class="tag later">ĐỂ SAU</span> <code>nhatbot_dobot_magician</code>, <code>vision_perception</code> (khi xe mới có tay máy/camera), <code>nhatbot_ros2_basic</code>.</li>
+</ul>
+</section>
+
+<section class="card" id="s8">
+<h2>8. Kế hoạch chuyển giao (chưa code)</h2>
+<ol>
+<li>Phần cứng mạng: switch + IP tĩnh 3 bên, ping thông.</li>
+<li>IMU: đấu I2C → bus check → build → TF/remap → calib → EKF với <code>/odom</code>.</li>
+<li>LiDAR qua switch, fix <code>ole2dv2.yaml</code>, remap <code>/scan</code> + filters.</li>
+<li>Port Nav2/SLAM/description/safety sang, sửa TF + limits + trigger lỗi mới.</li>
+<li>Calib odom thực tế (multiplier), test teleop → mapping → Nav2.</li>
+</ol>
+<p><b>Thứ tự khi code:</b> diff_drive yaml (TF + limit) → nhatbot_status (pin/lỗi) → filters frame → calib odom.</p>
+</section>
+
+<footer>Tài liệu chi tiết trong <code>AGENT_HANDOVER_GUIDE.md</code> mục 9–10 • Báo cáo này chỉ để trình bày, không thay tài liệu gốc.</footer>
+</div>
+</body>
+</html>

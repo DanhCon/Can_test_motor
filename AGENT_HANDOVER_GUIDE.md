@@ -90,8 +90,8 @@ Can_test_motor/
 | **`teleop.launch.py`** | **[LAUNCH CHÍNH ĐIỀU KHIỂN ROBOT]**<br>1. `joy_node`<br>2. `teleop_joy.py`<br>3. `zlac_udp_odom_node.py` | • Đọc tay cầm tại `/dev/input/js0`.<br>• **Cấu hình tay cầm chuẩn PS4:** Cần TRÁI (`axis_linear = 1`) lái Tiến/Lùi, Cần PHẢI (`axis_angular = 2`) bẻ lái Xoay xe.<br>• Nút Deadman L1 (`btn_deadman = 9`), Turbo R1 (`btn_turbo = 5`), E-stop B (`btn_estop = 1`), Reset odom Y (`btn_reset_odom = 3`).<br>• Tự động truyền các thông số cơ khí chuẩn: `wheel_radius = 0.0535`, `wheel_base = 0.45`, `publish_tf = True`. |
 | **`teleop_robot.launch.py`** | 1. `joy_node`<br>2. `teleop_joy.py`<br>3. `zlac_udp_odom_node.py` | • Phiên bản cấu hình tốc độ mềm hơn (`0.5 m/s` thường, `1.2 m/s` turbo, `axis_angular = 3`). Thích hợp cho người mới làm quen hoặc test trong không gian hẹp. |
 | **`bno055.launch.py`** | 1. `bno055_node`<br>2. `static_transform_publisher` (`base_link -> imu_link`) | • Nạp file cấu hình `bno055_params_i2c.yaml`.<br>• **Static TF tọa độ lắp IMU thực tế:** `x = 0.175 m, y = -0.048 m, z = 0.041 m, yaw = 0.0, pitch = 0.0, roll = 0.0`. |
-| **`ekf.launch.py`** | **[LAUNCH DUNG HỢP TOÀN BỘ ROBOT (ALL-IN-ONE)]**<br>1. `bno055_node` + static TF `imu_link`<br>2. `zlac_udp_odom_node` (`publish_tf=False`)<br>3. `ekf_node` (`robot_localization`)<br>4. OLE LiDAR (`ros2_lidar/ole2dv2_launch.py`)<br>5. `joy_node` + `teleop_joy` | • **Bật đồng bộ toàn bộ Robot:** Động cơ + IMU + EKF + LiDAR + Gamepad.<br>• Tự động kết nối và chạy đủ cả 3 thiết bị trên mạng Switch 5V.<br>• Tham số bật/tắt linh hoạt: `use_joy:=true`, `use_bno055:=true`, `use_lidar:=true`. |
-| **`robot.launch.py`** | **[ALIAS LAUNCH TOÀN DIỆN ROBOT]** | • Gọi trực tiếp `ekf.launch.py` để khởi động full stack AMR 1 lệnh duy nhất. |
+| **`ekf.launch.py`** | **[LAUNCH DUNG HỢP TOÀN BỘ ROBOT (ALL-IN-ONE) — ĐANG CHẠY CHÍNH]**<br>1. `bno055_node` + static TF `imu_link`<br>2. `zlac_udp_odom_node` (`publish_tf=False`)<br>3. `ekf_node` (`robot_localization`)<br>4. OLE LiDAR (`ros2_lidar/ole2dv2_launch.py`)<br>5. `joy_node` + `teleop_joy` | • **Bật đồng bộ toàn bộ Robot:** Động cơ + IMU + EKF + LiDAR + Gamepad.<br>• Tự động kết nối và chạy đủ cả 3 thiết bị trên mạng Switch 5V.<br>• Tham số bật/tắt linh hoạt: `use_joy:=true`, `use_bno055:=true`, `use_lidar:=true`.<br>• **Tương thích C++ (2026-09-06):** Mọi param launch truyền cho 2 node (`stm32_ip/port`, `local_port`, `wheel_radius/base`, `publish_tf`, `enable_smoother`, `max_linear/angular`, full cụm teleop_joy) đều đã có trong bản C++ với default khớp Python (`cpr 4096`, `motor_b_reverse true`, `deadzone 0.08`, `publish_rate 20.0`). Binary C++ trùng tên executable nên launch KHÔNG cần sửa. |
+| **`robot.launch.py`** | **[ALIAS LAUNCH TOÀN DIỆN ROBOT — ĐANG CHẠY CHÍNH (2026-09-06)]** | • Gọi trực tiếp `ekf.launch.py` KHÔNG kèm argument → chạy full defaults: `use_joy=true`, `use_bno055=true`, `use_lidar=true` (động cơ + IMU + EKF + OLE LiDAR + gamepad).<br>• Lệnh chạy: `ros2 launch can_test_motor robot.launch.py`.<br>• **Tương thích C++:** include chuyển tiếp sang cùng 2 executable trùng tên nên không cần sửa gì khi đổi Python ↔ C++. |
 | **`lidar.launch.py`** | **[LAUNCH TỔNG HỢP CẢM BIẾN QUÉT LASER]**<br>Hỗ trợ cả OLE LiDAR và RPLidar | • Cung cấp các tham số dòng lệnh linh hoạt:<br>&nbsp;&nbsp;`use_ole:=true` (mặc định bật OLE LiDAR qua Ethernet IP `192.168.1.101`).<br>&nbsp;&nbsp;`use_rplidar:=false` (tùy chọn bật RPLidar qua USB `/dev/ttyUSB0`).<br>• Tự động gán frame `laser_frame` đồng nhất cho cả 2 loại cảm biến. |
 | **`ole_lidar.launch.py`** | 1. `ole2dv2_launch.py` (`ros2_lidar`) | • Khởi chạy độc lập cảm biến OLE LiDAR (LifecycleNode + filter + TF). |
 | **`rplidar.launch.py`** | 1. `sllidar_node` | • Khởi chạy độc lập RPLidar qua cổng USB Serial `/dev/ttyUSB0` (baudrate 115200) với frame `laser_frame`. |
@@ -285,7 +285,26 @@ Can_test_motor/
 ### Lịch sử bàn giao:
 <!-- Agent mới ghi tiếp vào dưới dòng này, entry mới nhất lên trên cùng -->
 
-#### [2026-09-06 18:20] - Antigravity (Gemini 3.8 Flash) - Tích hợp & Chạy thực tế thành công OLE LiDAR (OLE_2D_V2) 15Hz
+#### [2026-09-06 19:45] - OpenCode (Muse Spark) — Chuyen 2 node Python sang C++ (ament_cmake), giu Python fallback
+- **Trang thai:** Da viet xong C++ 1-1 cho ca hai node, migrate build sang `ament_cmake` theo mau `differential_drive` (EIU-FABLAB-AMR). Launch file GIU NGUYEN (executable khong doi).
+- **File moi:** `include/can_test_motor/zlac_udp_odom_node.hpp`, `src/zlac_udp_odom_node.cpp` (~500 dong Python -> C++: POSIX UDP socket + SO_RCVTIMEO 50ms, `std::thread` RX + `std::mutex` odom/comm + `atomic<bool>`, CRC16, RK2 odometry, covariance y het Python, `RCLCPP_*_THROTTLE` thay throttle Python); `include/can_test_motor/teleop_joy.hpp`, `src/teleop_joy.cpp` (deadman index 4/9, turbo 5/10, estop toggle, reset_odom client + /set_pose EKF, publish_stop khi tat).
+- **File sua:** `package.xml` (build_type `ament_python` -> `ament_cmake`, them `buildtool_depend ament_cmake` + `rclcpp/std_msgs/std_srvs/tf2/tf2_geometry_msgs` + test_depend lint, GIU `rclpy` cho fallback); `CMakeLists.txt` (MOI: C++17, -Wall -Wextra -Wpedantic, 2 executables `zlac_udp_odom_node` + `teleop_joy`, install PROGRAMS giu ban *.py fallback, install launch+config).
+- **Chuan ap dung (tham khao):** `differential_drive/CMakeLists.txt + package.xml + motor_controller.hpp/.cpp + odom_estimator.hpp/.cpp` (EIU repo: tach hpp/cpp, declare/get_parameter, QoS KeepLast, tf2 broadcaster unique_ptr, main try/catch + node.reset + rclcpp::ok) + `ros2/examples rclcpp minimal_publisher` (Node subclass + wall_timer + bind).
+- **Chua verify:** Chua build (may Windows, khong co ROS2). Can chay tren Jetson/Ubuntu: `colcon build --packages-select can_test_motor` + `ament_cpplint/uncrustify` neu lint bao loi.
+- **Buoc tiep theo:** 1) Build tren may ROS2, sua loi bien dich neu co. 2) Chay `ros2 launch can_test_motor teleop.launch.py`, so sanh /odom + /cmd_vel voi ban Python. 3) Khi C++ on dinh, xoa `setup.py/setup.cfg/resource/` (hien thua, bi bo qua khi build ament_cmake) + xoa install PROGRAMS neu muon bo fallback.
+- **Luu y:** `setup.py/setup.cfg/resource/can_test_motor` van nam tren dia (legacy ament_python) nhung duoc bo qua; dung xoa truoc khi C++ build xanh.
+
+#### [2026-09-06 19:30] - Antigravity (Gemini 3.8 Flash) — Phát hiện nhatbot_firmware ĐÃ BỊ XÓA, thay bằng Python controller
+- **Trạng thái hiện tại:** Đang đọc code ros2_control của repo cũ EIU-FABLAB-AMR. Phát hiện quan trọng: `nhatbot_firmware/` (ros2_control C++ core với `NhatbotInterface`, `driver_manager.hpp`, `zlac_sdk.cpp`) **KHÔNG CÒN TỒN TẠI** trên branch main (404). Đã bị thay thế bằng `differential_drive/differential_drive_controller.py` (Python-based).
+- **File đã đọc:** `hardware_interface.ros2_control.xacro` (reference plugin đã mất), `differential_drive/src/motor_controller.cpp`, `differential_drive/src/odom_estimator.cpp`, `differential_drive/differential_drive_controller.py`, `nhatbot_controller/src/nav2_dynamic_window_pure_pursuit_controller.cpp`, `nhatbot_controller/include/nhatbot_controller/lqr_node.hpp`, `nhatbot_msgs/msg/ZlacStatus.msg`.
+- **Phát hiện kiến trúc mới thay thế:**
+  - `differential_drive_controller.py`: Sub `/nhatbot_controller/cmd_vel` → tính RPM → pub `/nhatbot_controller/wheel_rotational_vel`. Sub `/nhatbot_firmware/JointState` → pub `/nhatbot_controller/odom` + TF.
+  - `odom_estimator.cpp`: Sub `/nhatbot/JointState`, pub `/nhatbot/odom`.
+  - `motor_controller.cpp`: Sub `/nhatbot/cmd_vel`.
+- **File đã sửa:** `AGENT_HANDOVER_GUIDE.md` — cập nhật mục 10.5, 10.6 để phản ánh `nhatbot_firmware` đã bị xóa, thay bằng Python controller.
+- **Việc còn dở / Bước tiếp theo:** Đợi user xác nhận kiến trúc đích. Hướng 2 (dùng `zlac_udp_odom_node` chuẩn `/cmd_vel→/odom`) vẫn đang giữ nguyên, không thay đổi.
+- **Cách verify nhanh:** `gh api repos/NhatTran-97/EIU-FABLAB-AMR/contents/nhatbot_firmware --jq '.message'` → trả về 404.
+- **Lưu ý / Hố mới phát hiện:** `hardware_interface.ros2_control.xacro` trên repo cũ vẫn reference `nhatbot_interface/NhatbotInterface` — plugin này ĐÃ MẤT. Khi code, không dùng file xacro này làm base. Thay vào đó, `zlac_udp_odom_node.py` là node LỰA CHỌN chính cho hệ mới.
 - **Trạng thái hiện tại:** Đã kích hoạt và kiểm thử thực tế thành công cảm biến OLE LiDAR qua mạng switch 5V.
   - Giải quyết bài toán trùng IP xuất xưởng: Đổi IP LiDAR từ `192.168.1.100` sang `192.168.1.101` trên Web GUI OLE (giữ nguyên STM32 ở `192.168.1.100`).
   - Đã cấu hình Host Destination trên Web OLE: IP `192.168.1.10` (Jetson TX2), Port UDP `2368`.
@@ -429,17 +448,38 @@ Can_test_motor/
 - Topics: `bno055/imu, bno055/imu_raw, bno055/mag, bno055/grav, bno055/temp, bno055/calib_status`, service `bno055/calibration_request`. TF tĩnh: `base_link -> imu_link [0.175, -0.048, 0.041, 0,0,0]`.
 - Lưu ý chuyển giao: `Can_test_motor` hiện CHƯA có IMU. Bê sang phải kiểm tra lại bus I2C, đo lại TF + P0-P7, calib lại offsets (offsets cũ của xe khác), hạ 100Hz -> 50Hz nếu warn `skipping query cycle` để đồng bộ vòng UDP 50Hz. Chi tiết các bước xem hướng dẫn vận hành (user hỏi riêng, không code vội).
 
-### 10.5 Các file còn lại cần thay đổi (rà soát 2026-09-06, chưa code)
-1. **Bỏ hẳn (đặc thù Modbus):** `nhatbot_firmware` ros2_control (`nhatbot_hw_interface.cpp`, `driver_manager.hpp`, `zlac_sdk.cpp`, `motor_interfaces.xml/sensor_*.xml`, `launch/bringup_hardware_interface.launch.py`) + `zlac8015d_driver/params/motor_driver_params.yaml` (`modbus_port /dev/ttyUSB0`). Hướng 2 dùng `zlac_udp_odom_node` thẳng, không cần `controller_manager`.
-2. **Sửa `nhatbot_firmware/config/diff_drive_controller.yaml`:** giữ `wheel_separation 0.45 / wheel_radius 0.0535`; tắt 1 bên TF (`enable_odom_tf` vs `publish_tf` của UDP node, tránh double broadcast `odom->base_link`); kiểm tra lại đảo tên `left_wheel_names: [wheel_right_joint]` theo dây xe mới; nâng limits cũ (`max_velocity 0.5/accel 0.3`) lên theo xe mới (`1.5/0.8`); bỏ `SensorBroadcaster` Modbus. Giữ `update_rate 50` khớp UDP 50Hz.
-3. **Sửa `peripheral_interfaces/nhatbot_status.py`:** viết lại sub `/nhatbot/zlac_status (ZlacStatus)` + `/safety_stop` sang `/battery_voltage` + `error_code 0xEEEE/0xEE01` của UDP node; đo lại ngưỡng pin (`FULL 29.8/WARN 28.0/LOW 25.5` là của pack cũ); kiểm tra lại map chân Jetson.GPIO BOARD theo dây mới. Giữ `audio_server/client + voices/*.mp3`.
-4. **Giữ, chỉ remap:** `filters`, `laser_filters` (sửa `frame_id laser_data_frame` + `/scan`); `rplidar_ros`, `oleros2` (fix IP qua switch + `ole2dv2.yaml`); `odom_calibration/` (chạy lại lấy `wheel_multiplier`, đang 1.0).
-- Thứ tự khi code: diff_drive yaml (TF + limit) -> nhatbot_status (pin/lỗi) -> filters frame -> calib odom.
+### 10.5 Các file còn lại cần thay đổi (CHỈNH SỬA 2026-09-06 — nhấn mạnh: nhatbot_firmware ĐÃ BỊ XÓA)
 
-### 10.6 Toàn repo EIU-FABLAB-AMR (quét root 2026-09-06, chưa code)
+> ⚠️ **THUẬT TOÁN QUAN TRỌNG:** `nhatbot_firmware/` (ros2_control C++ core) **KHÔNG CÒN TỒN TẠI** trên branch main của EIU-FABLAB-AMR (404). Đã bị xóa và thay thế hoàn toàn bằng Python-based architecture.
+
+1. **ĐÃ BỎ HẾT (đặc thù Modbus):** `nhatbot_firmware` ros2_control (`nhatbot_hw_interface.cpp`, `driver_manager.hpp`, `zlac_sdk.cpp`, `motor_interfaces.xml/sensor_*.xml`, `launch/bringup_hardware_interface.launch.py`) + `zlac8015d_driver/params/motor_driver_params.yaml` (`modbus_port /dev/ttyUSB0`) — **đã bị xóa khỏi repo**, không cần xóa nữa. Hướng 2 dùng `zlac_udp_odom_node` thẳng, không cần `controller_manager`.
+
+2. **Kiến trúc thay thế hiện tại trong EIU-FABLAB-AMR (Python-based):**
+   - `differential_drive/differential_drive_controller.py` — Node Python thay thế ros2_control:
+     - Sub `nhatbot_controller/cmd_vel` (Twist) → tính wheel RPM → pub `nhatbot_controller/wheel_rotational_vel` (Float32MultiArray)
+     - Sub `nhatbot_firmware/JointState` (encoder) → tính odometry → pub `nhatbot_controller/odom` + TF `odom→base_link`
+     - Service `reset_odom`
+     - Params: `wheel_radius 0.0535`, `wheel_separation 0.45`, `max_linear_velocity 0.6`, `max_angular_velocity 0.4`
+   - `differential_drive/src/odom_estimator.cpp` — C++ node thay thế, sub `nhatbot/JointState`, pub `nhatbot/odom` + TF
+   - `differential_drive/src/motor_controller.cpp` — C++ node, sub `nhatbot/cmd_vel`, pub wheel commands
+   - `nhatbot_controller/src/nav2_dynamic_window_pure_pursuit_controller.cpp` — Nav2 plugin custom (DPW)
+   - `nhatbot_controller/include/nhatbot_controller/lqr_node.hpp` — LQR controller header
+
+3. **Sửa `nhatbot_firmware/config/diff_drive_controller.yaml`** (file vẫn còn trên repo nhưng reference plugin đã mất): giữ `wheel_separation 0.45 / wheel_radius 0.0535`; tắt 1 bên TF (`enable_odom_tf` vs `publish_tf` của UDP node, tránh double broadcast `odom->base_link`); kiểm tra lại đảo tên `left_wheel_names: [wheel_right_joint]` theo dây xe mới; nâng limits cũ (`max_velocity 0.5/accel 0.3`) lên theo xe mới (`1.5/0.8`); bỏ `SensorBroadcaster` Modbus. Giữ `update_rate 50` khớp UDP 50Hz.
+
+4. **Sửa `peripheral_interfaces/nhatbot_status.py`:** viết lại sub `/nhatbot/zlac_status (ZlacStatus)` + `/safety_stop` sang `/battery_voltage` + `error_code 0xEEEE/0xEE01` của UDP node; đo lại ngưỡng pin (`FULL 29.8/WARN 28.0/LOW 25.5` là của pack cũ); kiểm tra lại map chân Jetson.GPIO BOARD theo dây mới. Giữ `audio_server/client + voices/*.mp3`.
+
+5. **Giữ, chỉ remap:** `filters`, `laser_filters` (sửa `frame_id laser_data_frame` + `/scan`); `rplidar_ros`, `oleros2` (fix IP qua switch + `ole2dv2.yaml`); `odom_calibration/` (chạy lại lấy `wheel_multiplier`, đang 1.0).
+
+6. **Sửa `nhatbot_description/urdf/hardware_interface.ros2_control.xacro`:** file vẫn còn trên repo nhưng reference plugin `nhatbot_interface/NhatbotInterface` đã mất → cần xóa hoặc comment ra, thay bằng tham chiếu đến Python controller nếu cần.
+
+- **Thứ tự khi code:** diff_drive yaml (TF + limit) -> nhatbot_status (pin/lỗi) -> filters frame -> calib odom.
+- **Thứ tự khi code:** diff_drive yaml (TF + limit) -> nhatbot_status (pin/lỗi) -> filters frame -> calib odom.
+
+### 10.6 Toàn repo EIU-FABLAB-AMR (quét root 2026-09-06, CHỈNH SỬA 2026-09-06)
 - Repo cũ là full-stack AMR + tay máy (~19 packages), xe mới `Can_test_motor` hiện mới có tầng chân đế (STM32 gateway + `zlac_udp_odom_node` + teleop).
-- **Bê sang, sửa nhẹ (tầng trên, không dính Modbus):** `nhatbot_description` (URDF/meshes, đo lại xe mới + TF IMU/lidar), `nhatbot_localization` (EKF, đổi input sang `/odom` UDP 50Hz + `/bno055/imu`), `nhatbot_mapping / nhatbot_navigation / nav2` (SLAM online_async, Nav2, nav_to_pose, rviz; remap odom/scan/tf + nâng `max_vel 0.5->1.5`), `nhatbot_safety` (`/safety_stop`), `nhatbot_twist_teleop`, `differential_drive`, `nhatbot_behavior/controller/utils`, `nhatbot_msgs`, `scripts/maps/rviz` trong `nhatbot_stack`. Trigger an toàn viết lại từ `error_code 0xEEEE/0xEE01 + /battery_voltage`.
-- **Bỏ hẳn:** toàn bộ chân đế Modbus (mục 10.5) + viết lại `nhatbot_stack/launch/nhatbot_bringup.launch.py + build_map.launch.py` (đang gọi bringup Modbus cũ).
+- **Bê sang, sửa nhẹ (tầng trên, không dính Modbus):** `nhatbot_description` (URDF/meshes, đo lại xe mới + TF IMU/lidar), `nhatbot_localization` (EKF, đổi input sang `/odom` UDP 50Hz + `/bno055/imu`), `nhatbot_mapping / nhatbot_navigation / nav2` (SLAM online_async, Nav2, nav_to_pose, rviz; remap odom/scan/tf + nâng `max_vel 0.5->1.5`), `nhatbot_safety` (`/safety_stop`), `nhatbot_twist_teleop`, `differential_drive` (Python controller), `nhatbot_behavior/controller/utils`, `nhatbot_msgs`, `scripts/maps/rviz` trong `nhatbot_stack`. Trigger an toàn viết lại từ `error_code 0xEEEE/0xEE01 + /battery_voltage`.
+- **ĐÃ BỊ XÓA KHỎI REPO:** toàn bộ `nhatbot_firmware` (ros2_control C++ core) — thay bằng Python `differential_drive_controller.py`.
 - **Để sau:** `nhatbot_dobot_magician`, `vision_perception` (chỉ bê khi xe mới có tay máy/camera), `nhatbot_ros2_basic` demo.
 
 ---
