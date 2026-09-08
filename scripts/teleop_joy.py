@@ -20,7 +20,7 @@ Tương thích: ROS 2 Humble, Iron, Foxy, Jazzy
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Joy
-from geometry_msgs.msg import Twist, PoseWithCovarianceStamped
+from geometry_msgs.msg import Twist, TwistStamped, PoseWithCovarianceStamped
 from std_srvs.srv import Trigger
 
 
@@ -76,11 +76,12 @@ class GamepadTeleopNode(Node):
         self.estop_active = False
         self.last_reset_btn_state = 0
 
-        # Publisher cmd_vel
+        # Publisher cmd_vel & TwistStamped cho twist_mux
         self.cmd_pub = self.create_publisher(Twist, 'cmd_vel', 10)
+        self.cmd_stamped_pub = self.create_publisher(TwistStamped, '/input_joy/cmd_vel', 10)
 
         # Subscriber nhận dữ liệu từ joy_node
-        self.joy_sub = self.create_subscription(Joy, 'joy', self.joy_callback, 10)
+        self.joy_sub = self.create_subscription(Joy, '/joy', self.joy_callback, 10)
 
         # Client gọi Service /reset_odom của zlac_udp_odom_node
         self.reset_odom_client = self.create_client(Trigger, 'reset_odom')
@@ -167,6 +168,12 @@ class GamepadTeleopNode(Node):
         self.v_out = float(raw_lin * scale_lin)
         self.omega_out = float(raw_ang * scale_ang)
 
+        if abs(self.v_out) > 0.001 or abs(self.omega_out) > 0.001:
+            self.get_logger().info(
+                f"[Teleop] Dang phat lenh chay: v_linear={self.v_out:.2f} m/s, w_angular={self.omega_out:.2f} rad/s",
+                throttle_duration_sec=0.5
+            )
+
     def timer_callback(self):
         # Xuất bản tin Twist lên /cmd_vel
         cmd = Twist()
@@ -177,6 +184,13 @@ class GamepadTeleopNode(Node):
         cmd.angular.y = 0.0
         cmd.angular.z = self.omega_out
         self.cmd_pub.publish(cmd)
+
+        # Xuất bản tin TwistStamped lên /input_joy/cmd_vel cho twist_mux
+        cmd_stamped = TwistStamped()
+        cmd_stamped.header.stamp = self.get_clock().now().to_msg()
+        cmd_stamped.header.frame_id = 'base_link'
+        cmd_stamped.twist = cmd
+        self.cmd_stamped_pub.publish(cmd_stamped)
 
     def call_reset_odom_service(self):
         # 1. Reset Odometry thô trên node zlac_udp_odom_node (STM32)

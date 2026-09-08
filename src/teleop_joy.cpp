@@ -59,7 +59,7 @@ GamepadTeleopNode::GamepadTeleopNode(const rclcpp::NodeOptions & options)
   cmd_stamped_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
     "/input_joy/cmd_vel", qos);
   joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
-    "joy", qos,
+    "/joy", rclcpp::SensorDataQoS(),
     std::bind(&GamepadTeleopNode::joy_callback, this, std::placeholders::_1));
   reset_odom_client_ = this->create_client<std_srvs::srv::Trigger>("reset_odom");
   set_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(

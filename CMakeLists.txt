@@ -73,11 +73,15 @@ target_include_directories(teleop_joy PUBLIC
 # 4. Cài đặt các target
 install(TARGETS
   zlac_hardware_interface
-  zlac_udp_odom_node
-  teleop_joy
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
+)
+
+install(TARGETS
+  zlac_udp_odom_node
+  teleop_joy
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 install(PROGRAMS
