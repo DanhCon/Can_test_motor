@@ -148,7 +148,7 @@ Kiểm tra sức khỏe hệ thống ở Terminal 2:
 # Kiểm tra tần số quét LiDAR (đạt chuẩn ~15 Hz)
 ros2 topic hz /scan
 
-# Kiểm tra tần số Odometry đã dung hợp EKF (đạt chuẩn ~15 Hz tối ưu cho CPU Jetson TX2)
+# Kiểm tra tần số Odometry đã dung hợp EKF (đạt chuẩn ~20 Hz mượt mà, nhẹ tải CPU Jetson TX2)
 ros2 topic hz /odometry/filtered
 
 # Kiểm tra phản hồi vận tốc động cơ

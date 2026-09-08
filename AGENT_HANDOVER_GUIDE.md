@@ -289,7 +289,7 @@ Can_test_motor/
 - **Trạng thái hiện tại:**
   - **Động cơ (ZLAC8015D + STM32 + W5500 `192.168.1.100:8888`):** Đã thông suốt 100% qua `ros2_control` C++ hardware interface (`ZlacHardwareInterface`). Khi phát lệnh `/diff_drive_controller/cmd_vel_unstamped` hoặc gạt tay cầm, 2 bánh xe quay mượt mà, phản hồi telemetry 50Hz (trễ khứ hồi RTT 0.2ms, `err=0x0000`, `vbus=27.8V`).
   - **LiDAR OLE 2D (`192.168.1.101:2368`):** Đã giải quyết triệt để lỗi mất tia quét, xuất bản topic `/scan` và `/scan_filtered` cực kỳ ổn định ở tần số chuẩn **15.000 Hz** (900 RPM).
-  - **IMU BNO055 & EKF Fusion:** IMU hoạt động trên bus I2C-1 (50Hz), bộ lọc Kalman mở rộng (`robot_localization`) chạy ở **15.0 Hz** (chu kỳ 66.7ms theo `config/ekf.yaml`, vừa vặn tối ưu cho CPU ARM Jetson TX2 tính ma trận $15\times15$ không bị quá tải CPU), dung hợp vận tốc bánh xe và góc xoay IMU, xuất bản ra topic **`/odometry/filtered`** (chính là Odom chuẩn cấp cho Nav2/SLAM).
+  - **IMU BNO055 & EKF Fusion:** IMU hoạt động trên bus I2C-1 (50Hz), bộ lọc Kalman mở rộng (`robot_localization`) chạy ở **20.0 Hz** (chu kỳ 50.0ms theo `config/ekf.yaml`, cực kỳ mượt mà cho Nav2 và nhẹ tải cho CPU ARM Jetson TX2, hoàn toàn sạch bóng cảnh báo trễ hạn), dung hợp vận tốc bánh xe và góc xoay IMU, xuất bản ra topic **`/odometry/filtered`** (chính là Odom chuẩn cấp cho Nav2/SLAM).
 - **Các sự cố then chốt đã phát hiện & khắc phục:**
   1. **Lỗi `Address already in use` (UDP Port 8888):** Tiến trình ROS 2 cũ khi tắt bằng Ctrl+C chưa kịp nhả port. Đã có script Python 1-dòng quét kernel `/proc/net/udp` để kill dứt điểm.
   2. **Xung đột kiểu dữ liệu `Twist` vs `TwistStamped`:** Trên ROS 2 Humble, `twist_mux` chỉ phát `Twist`. Đã đặt `use_stamped_vel: false` trong `diff_drive_controller.yaml` và remap `cmd_vel_out` sang `/diff_drive_controller/cmd_vel_unstamped`.
@@ -319,7 +319,7 @@ Can_test_motor/
 
   # 3. Kiểm tra các topic đầu ra ở Terminal khác:
   ros2 topic hz /scan                     # Đạt chuẩn ~15.0 Hz
-  ros2 topic hz /odometry/filtered        # Đạt chuẩn ~15.0 Hz (EKF Fusion tối ưu CPU TX2)
+  ros2 topic hz /odometry/filtered        # Đạt chuẩn ~20.0 Hz (EKF Fusion mượt mà)
   ros2 topic echo /diff_drive_controller/odom  # Phản hồi vận tốc bánh xe
   ```
 - **Bước tiếp theo:**
