@@ -157,7 +157,7 @@ local_costmap:
         enabled: true
         observation_sources: scan #camera_scan
         scan:
-          topic: /scan
+          topic: /scan_filtered
           data_type: "LaserScan"
           clearing: true
           marking: true

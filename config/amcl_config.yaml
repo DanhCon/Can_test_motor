@@ -9,7 +9,7 @@ amcl:
     base_frame_id: base_link
     global_frame_id: map
     odom_frame_id: odom
-    scan_topic: /scan
+    scan_topic: /scan_filtered
     robot_model_type: nav2_amcl::DifferentialMotionModel
     laser_model_type: likelihood_field
     max_beams: 80
