@@ -1,0 +1,55 @@
+planner_server:
+  ros__parameters:
+    use_sim_time: false
+    expected_planner_frequency: 5.0
+    costmap_update_timeout: 1.0
+    planner_plugins: ["GridBased"]
+    GridBased:
+      plugin: "nav2_theta_star_planner::ThetaStarPlanner"
+      how_many_corners: 8
+      w_euc_cost: 1.0
+      w_traversal_cost: 2.0
+      allow_unknown: true
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      use_sim_time: false
+      # Global environment processing is the slowest periodic layer.
+      update_frequency: 2.0
+      publish_frequency: 1.0
+      global_frame: map
+      robot_base_frame: base_link
+      resolution: 0.05
+      # Robot chu nhat 0.6m (dai) x 0.4m (rong) - phai khop voi local_costmap
+      footprint: "[[0.30, 0.20], [0.30, -0.20], [-0.30, -0.20], [-0.30, 0.20]]"
+      track_unknown_space: true
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: true
+
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        cost_scaling_factor: 3.0
+        inflation_radius: 0.45
+      # false = chi gui delta thay vi ca luoi 639x191 = 122.000 o moi giay
+      always_send_full_costmap: false
+
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: true
+        observation_sources: "scan"
+        scan:
+          topic: /scan
+          data_type: "LaserScan"
+          clearing: true
+          marking: true
+          # Gioi han tam: chi ghi nhan vat can gan robot -> duong vong chi mang tinh
+          # cuc bo, tuyen tong the khong doi, va re CPU hon quet ca ban do.
+          obstacle_max_range: 3.0
+          # Phai LON HON obstacle_max_range de lidar tu xoa sach vat can cu khi
+          # di qua, tranh "vat can ma" tich tu vinh vien trong global costmap.
+          raytrace_max_range: 4.0
+          max_obstacle_height: 2.0
