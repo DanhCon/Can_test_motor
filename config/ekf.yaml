@@ -3,7 +3,7 @@
 
 ekf_filter_node:
   ros__parameters:
-    frequency: 30.0                # 30Hz: Chu kỳ 33.3ms, mượt mà tối ưu cho Nav2 khi chạy Jetson TX2 ở mode MAXN
+    frequency: 50.0                # 50Hz: Chu kỳ 20.0ms, cực đại thời gian thực khi chạy Jetson TX2 ở mode MAXN
     sensor_timeout: 0.1
     two_d_mode: true               # Bật chế độ 2D cho robot AGV/AMR mặt sàn (khóa z, roll, pitch)
     transform_time_offset: 0.0
