@@ -5,7 +5,9 @@ planner_server:
     costmap_update_timeout: 1.0
     planner_plugins: ["GridBased"]
     GridBased:
-      plugin: "nav2_theta_star_planner::ThetaStarPlanner"
+      # Ten class phai dung dau '/' (khong phai '::'): neu sai, planner_server FATAL
+      # "does not exist" va lifecycle_manager abort toan bo bringup Nav2.
+      plugin: "nav2_theta_star_planner/ThetaStarPlanner"
       how_many_corners: 8
       w_euc_cost: 1.0
       w_traversal_cost: 2.0
