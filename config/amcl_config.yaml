@@ -13,8 +13,8 @@ amcl:
     robot_model_type: nav2_amcl::DifferentialMotionModel
     laser_model_type: likelihood_field
     max_beams: 80
-    max_particles: 3000
-    min_particles: 800
+    max_particles: 1500             # Ha tu 3000: CPU doi (load ~14) khi full stack Nav2
+    min_particles: 400              # Ha tu 800 tuong ung
     update_min_a: 0.25
     update_min_d: 0.15
     resample_interval: 1
