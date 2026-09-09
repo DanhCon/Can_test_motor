@@ -43,22 +43,7 @@ ament_target_dependencies(zlac_hardware_interface
 # Đăng ký file plugin XML với pluginlib
 pluginlib_export_plugin_description_file(hardware_interface zlac_interfaces.xml)
 
-# 3. Build các node executable truyền thống (Cũ)
-add_executable(zlac_udp_odom_node
-  src/zlac_udp_odom_node.cpp)
-ament_target_dependencies(zlac_udp_odom_node
-  rclcpp
-  geometry_msgs
-  nav_msgs
-  std_msgs
-  std_srvs
-  tf2
-  tf2_ros
-  tf2_geometry_msgs)
-target_include_directories(zlac_udp_odom_node PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-
+# 3. Build các node executable truyền thống
 add_executable(teleop_joy
   src/teleop_joy.cpp)
 ament_target_dependencies(teleop_joy
@@ -79,7 +64,6 @@ install(TARGETS
 )
 
 install(TARGETS
-  zlac_udp_odom_node
   teleop_joy
   DESTINATION lib/${PROJECT_NAME}
 )

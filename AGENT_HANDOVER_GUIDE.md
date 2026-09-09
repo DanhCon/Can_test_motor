@@ -306,6 +306,29 @@ Can_test_motor/
 ### Lịch sử bàn giao:
 <!-- Agent mới ghi tiếp vào dưới dòng này, entry mới nhất lên trên cùng -->
 
+#### [2026-09-09 10:35] - Antigravity (Gemini 3.8 Flash) — Hoàn tất chuẩn hóa 14 mục kỹ thuật, dọn sạch build target legacy & đồng bộ an toàn
+- **Trạng thái hiện tại:**
+  - **Chuẩn hóa Build Target:** Gỡ bỏ target build `zlac_udp_odom_node` khỏi `CMakeLists.txt` (vì hệ thống đã chuyển hẳn sang C++ `ros2_control` hardware interface `zlac_hardware_interface`). Chuyển file mã nguồn `src/zlac_udp_odom_node.cpp` vào `src/legacy/` và header `include/can_test_motor/zlac_udp_odom_node.hpp` vào `include/can_test_motor/legacy/` để tránh header mồ côi. Cập nhật banner thông báo trong `launch/legacy/teleop.launch.py` và `teleop_robot.launch.py`.
+  - **Đồng bộ An toàn Deadman (Chuẩn công nghiệp):** Thống nhất đặt mặc định `enable_deadman:=true` trên toàn bộ hệ thống (`robot.launch.py` và `bringup_all.launch.py`). Khi thử nghiệm kê bổng xe không muốn giữ cần Deadman, người vận hành chủ động truyền cờ `enable_deadman:=false`.
+  - **Dọn dẹp Config chết & Trùng lặp:**
+    - `config/bno055_params_i2c.yaml`: Xóa bỏ hoàn toàn block `bno055:` nhân đôi thừa, chỉ giữ block `bno055_node:` duy nhất.
+    - `config/ole2dv2.yaml`: Đã chuyển vào `config/legacy/ole2dv2.yaml`. Ghi chú rõ: Cấu hình OLE LiDAR thật sự chạy trên máy Jetson TX2 nằm ở `ros2_lidar/params/ole2dv2.yaml`.
+    - `launch/lidar.launch.py`: Bỏ khai báo argument `ole_param_file` không sử dụng.
+  - **Chuẩn hóa luồng LiDAR cho RPLidar:**
+    - Cập nhật `launch/rplidar.launch.py`: Đưa luồng quét vào chuẩn toàn hệ thống: remap `/scan -> /scan_raw`, nạp bộ lọc `laser_filters` (`config/angular_filter.yaml` gọt góc $\pm 119^\circ$) phát ra `/scan`, và phát Static TF `base_link -> laser_frame` (`x=0.20, y=0.0, z=0.15`).
+  - **Đồng bộ Tên Node & TF:**
+    - `launch/teleop_mux.launch.py`: Đổi tên node `teleop_joy` thành `teleop_joy_node` đồng bộ với `robot.launch.py`.
+    - `AGENT_HANDOVER_GUIDE.md`: Cập nhật toàn bộ tọa độ TF Laser thành `x=0.20, y=0.0, z=0.15`, child frame `laser_frame` kèm ghi chú: *"Số đo thực tế trên xe hiện tại, cần đo lại nếu đổi giá đỡ"*.
+  - **Ghi nhận Backlog:** Topic `/safety_stop` cho `twist_mux` (chuẩn bị tích hợp bumper vật lý hoặc vùng bảo vệ an toàn lidar stop).
+- **Cách verify nhanh trên Jetson TX2:**
+  ```bash
+  cd /home/nhatbot_ws/src/can_test_motor && git pull origin main
+  cd /home/nhatbot_ws && colcon build --packages-select can_test_motor --symlink-install && source install/setup.bash
+  # Chạy thử nghiệm hệ thống hoàn chỉnh:
+  ros2 launch can_test_motor bringup_all.launch.py enable_deadman:=false
+  ```
+---
+
 #### [2026-09-08 18:05] - Antigravity (Gemini 3.8 Flash) — Thông suốt Full-stack ROS 2 Control (ZLAC + STM32), OLE LiDAR (15Hz), IMU BNO055 & EKF Fusion
 - **Trạng thái hiện tại:**
   - **Động cơ (ZLAC8015D + STM32 + W5500 `192.168.1.100:8888`):** Đã thông suốt 100% qua `ros2_control` C++ hardware interface (`ZlacHardwareInterface`). Khi phát lệnh `/diff_drive_controller/cmd_vel_unstamped` hoặc gạt tay cầm, 2 bánh xe quay mượt mà, phản hồi telemetry 50Hz (trễ khứ hồi RTT 0.2ms, `err=0x0000`, `vbus=27.8V`).
@@ -375,7 +398,7 @@ Can_test_motor/
   - Node: `lidar_driver` (LifecycleNode) + `scan_to_scan_filter_chain` (laser_filters).
   - Tần số quét thực tế đạt **15.0 Hz** cực kỳ ổn định (std dev 0.0035s), góc quét toàn cảnh 360° ($-\pi \rightarrow +\pi$), bán kính tối đa 50m.
   - Topics hoạt động: `/scan` và `/scan_filtered`.
-  - Static TF chuẩn xác: `base_link -> laser` (`[0.195, 0.0, 0.0557, 0, 0, 0]`).
+  - Static TF chuẩn xác: `base_link -> laser_frame` (`[0.20, 0.0, 0.15, 0, 0, 0]`) - Số đo thực tế trên xe hiện tại, cần đo lại nếu đổi giá đỡ.
   - Tích hợp launch file: `launch/ole_lidar.launch.py` và `launch/lidar.launch.py` trong package `can_test_motor`.
 - **Cách verify nhanh:**
   ```bash
@@ -559,11 +582,11 @@ Can_test_motor/
 | **Model LiDAR** | **OLE Oleros2 (OLE_2D_V2)** | Quét 360 độ toàn cảnh ($-\pi \rightarrow +\pi$) |
 | **Giao thức mạng** | Ethernet UDP qua Switch 5V | Bắn gói tin 1240 bytes về cổng `2368` của Jetson |
 | **IP Thiết bị** | • Jetson TX2: `192.168.1.10`<br>• STM32 W5500: `192.168.1.100`<br>• OLE LiDAR: **`192.168.1.101`** | Đã đổi IP trên Web GUI OLE để tránh trùng IP `100` |
-| **Package ROS 2** | `ros2_lidar` | Thư mục: `nhatbot_drivers/oleros2/src/ros2_lidar` |
+| **Package ROS 2** | `ros2_lidar` | Thư mục: `nhatbot_drivers/oleros2/src/ros2_lidar`. Driver nạp params từ `ros2_lidar/params/ole2dv2.yaml`. Mẫu lịch sử nằm tại `config/legacy/ole2dv2.yaml`. |
 | **Node thực thi** | `lidar_driver` (LifecycleNode) | Tự động configure & activate |
 | **Bộ lọc tia** | `scan_to_scan_filter_chain` (`laser_filters`) | Nạp `config/angular_filter.yaml` (gọt góc sau lưng xe $\pm 119^\circ$) |
 | **Topics xuất ra** | **`/scan_raw`** (thô 360°) $\to$ **`/scan`** (đã lọc góc) | Tần số đo thực tế: **15.0 Hz** cực kỳ ổn định. Nav2 & AMCL nghe trực tiếp `/scan` |
-| **Static TF chuẩn** | `base_link -> laser` | Tọa độ: `x = 0.195 m, y = 0.0 m, z = 0.0557 m` |
+| **Static TF chuẩn** | `base_link -> laser_frame` | Tọa độ: `x = 0.20 m, y = 0.0 m, z = 0.15 m`<br>*(Số đo thực tế trên xe hiện tại, cần đo lại nếu đổi giá đỡ)* |
 
 ### 11.2 Sơ đồ mạng Switch 5V hoàn chỉnh
 ```
@@ -633,10 +656,11 @@ def generate_launch_description():
     ])
 ```
 
-#### 11.3.4 TF cho OLE
-- Static TF: `base_link → laser_frame` (hoặc `base_link → lidar_link`)
-- Vị trí lắp đặt thực tế trên xe (x, y, z, roll, pitch, yaw) — cần đo lại
-- Ví dụ: `static_transform_publisher base_link laser_frame [x] [y] [z] [roll] [pitch] [yaw]`
+#### 11.3.4 TF cho LiDAR (OLE & RPLidar)
+- Static TF chuẩn: `base_link → laser_frame`
+- Tọa độ thực tế đo trên xe: `x = 0.20 m, y = 0.0 m, z = 0.15 m, yaw = 0, pitch = 0, roll = 0` (cần đo lại nếu đổi giá đỡ).
+- Static transform publisher:
+  `ros2 run tf2_ros static_transform_publisher --x 0.20 --y 0.0 --z 0.15 --yaw 0.0 --pitch 0.0 --roll 0.0 --frame-id base_link --child-frame-id laser_frame`
 
 ### 11.4 RPLidar - Cấu hình chi tiết
 

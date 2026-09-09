@@ -23,27 +23,3 @@ bno055_node:
     offset_mag: [65341, 366, 65232]
     radius_mag: 453
     offset_gyr: [0, 65534, 65535]
-
-bno055:
-  ros__parameters:
-    ros_topic_prefix: "bno055/"
-    connection_type: "i2c"
-    i2c_bus: 1
-    i2c_addr: 40
-    data_query_frequency: 50
-    calib_status_frequency: 0.1
-    frame_id: "imu_link"
-    operation_mode: 12
-    placement_axis_remap: "P0"
-
-    acc_factor: 100.0
-    mag_factor: 16000000.0
-    gyr_factor: 900.0
-    grav_factor: 100.0
-
-    set_offsets: true
-    offset_acc: [65503, 2, 65501]
-    radius_acc: 1000
-    offset_mag: [65341, 366, 65232]
-    radius_mag: 453
-    offset_gyr: [0, 65534, 65535]

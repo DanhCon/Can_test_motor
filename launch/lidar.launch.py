@@ -29,11 +29,9 @@ from launch_ros.actions import Node, SetRemap
 
 def generate_launch_description():
     pkg_dir = get_package_share_directory('can_test_motor')
-    default_ole_config = os.path.join(pkg_dir, 'config', 'ole2dv2.yaml')
 
     use_ole = LaunchConfiguration('use_ole')
     use_rplidar = LaunchConfiguration('use_rplidar')
-    ole_param_file = LaunchConfiguration('ole_param_file')
 
     # 1. Khai báo Launch Arguments
     declare_use_ole = DeclareLaunchArgument(
@@ -45,11 +43,6 @@ def generate_launch_description():
         'use_rplidar',
         default_value='false',
         description='Bật/tắt cảm biến RPLidar qua cổng USB (true/false)'
-    )
-    declare_ole_config = DeclareLaunchArgument(
-        'ole_param_file',
-        default_value=default_ole_config,
-        description='Đường dẫn file cấu hình YAML của OLE LiDAR'
     )
 
     # 2. Node OLE LiDAR (Ethernet UDP) qua package ros2_lidar (remap -> /scan_raw)
@@ -104,7 +97,6 @@ def generate_launch_description():
     return LaunchDescription([
         declare_use_ole,
         declare_use_rplidar,
-        declare_ole_config,
         ole_node,
         rplidar_node,
         filter_node,

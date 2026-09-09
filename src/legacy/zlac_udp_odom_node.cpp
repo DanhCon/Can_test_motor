@@ -1,4 +1,4 @@
-#include "can_test_motor/zlac_udp_odom_node.hpp"
+#include "can_test_motor/legacy/zlac_udp_odom_node.hpp"
 
 #include <algorithm>
 #include <chrono>

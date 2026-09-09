@@ -37,7 +37,7 @@ def generate_launch_description():
     teleop_joy_node = Node(
         package='can_test_motor',
         executable='teleop_joy',
-        name='teleop_joy',
+        name='teleop_joy_node',
         parameters=[{
             'axis_linear': 1,
             'axis_angular': 2,

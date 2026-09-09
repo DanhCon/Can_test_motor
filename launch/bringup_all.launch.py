@@ -69,8 +69,8 @@ def generate_launch_description():
 
     declare_enable_deadman = DeclareLaunchArgument(
         'enable_deadman',
-        default_value='false',
-        description='Bắt buộc giữ phím L1 để chạy xe (true/false, mặc định false để tiện test)'
+        default_value='true',
+        description='Bắt buộc giữ phím L1 để chạy xe (true/false, mặc định true an toàn)'
     )
 
     # 1. Cụm nền tảng phần cứng & cảm biến (robot.launch.py)
