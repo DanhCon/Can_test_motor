@@ -248,12 +248,13 @@ def generate_launch_description():
         )
     ], condition=IfCondition(LaunchConfiguration('use_lidar')))
 
-    # Node laser_filters: /scan_raw -> /scan (gọt góc chắn sau lưng xe +-119 độ)
+    # Node laser_filters RIENG cua bringup (doi ten tranh dung voi filter co san
+    # trong ole2dv2_launch.py cua driver ngoai): /scan_raw -> /scan (got goc +-119 do)
     angular_filter_config = os.path.join(pkg_dir, 'config', 'angular_filter.yaml')
     filter_laser_node = Node(
         package='laser_filters',
         executable='scan_to_scan_filter_chain',
-        name='scan_to_scan_filter_chain',
+        name='scan_to_scan_filter_main',
         output='screen',
         parameters=[angular_filter_config],
         remappings=[
