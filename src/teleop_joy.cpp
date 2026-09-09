@@ -173,20 +173,20 @@ void GamepadTeleopNode::joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg)
 void GamepadTeleopNode::timer_callback()
 {
   bool should_publish = false;
-  if (estop_active_) {
-    v_out_ = 0.0;
-    omega_out_ = 0.0;
-  }
 
-  const bool is_active = (enable_deadman_ ? deadman_pressed_ : true) &&
-                         (std::abs(v_out_) > 0.001 || std::abs(omega_out_) > 0.001);
+  // Khi E-Stop kích hoạt hoặc khi giữ nút Deadman (L1), phát lệnh ngay lập tức với ưu tiên 99 đè Nav2 (ưu tiên 10)
+  const bool is_active = estop_active_ || (enable_deadman_ ? deadman_pressed_ : (std::abs(v_out_) > 0.001 || std::abs(omega_out_) > 0.001));
 
   if (is_active) {
+    if (estop_active_) {
+      v_out_ = 0.0;
+      omega_out_ = 0.0;
+    }
     stop_sent_count_ = 0;
     should_publish = true;
   } else {
-    // Gui 3 lan goi tin van toc 0 de dung han, sau do ngung publish
-    // de twist_mux tu dong nha kenh joystick (timeout 0.25s) cho Nav2/cmd_vel
+    // Khi nhả nút Deadman L1, phát 3 gói vận tốc 0 rồi dừng truyền
+    // để twist_mux tự động nhả kênh joystick (timeout 0.25s) nhường Nav2
     if (stop_sent_count_ < 3) {
       v_out_ = 0.0;
       omega_out_ = 0.0;
