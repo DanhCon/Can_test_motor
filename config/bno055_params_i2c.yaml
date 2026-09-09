@@ -4,7 +4,8 @@ bno055_node:
     connection_type: "i2c"
     i2c_bus: 1                   # Jetson TX2 Pin 27/28 (Bus 1)
     i2c_addr: 40                 # 0x28 hex = 40 dec (Integer)
-    data_query_frequency: 50     # 50 Hz (Kieu INTEGER)
+    data_query_frequency: 25     # Ha tu 50Hz: bus I2C cham gay ket D-state, driver Python ton 31% CPU.
+                                   # EKF chay 10Hz chi can yaw/vyaw, IMU 25Hz du dung. Offsets calib khong doi.
     calib_status_frequency: 0.1  # 0.1 Hz (Kieu DOUBLE)
     frame_id: "imu_link"
     operation_mode: 12           # 12 = 0x0C = NDOF mode (Integer)
