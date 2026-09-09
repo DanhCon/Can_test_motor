@@ -306,6 +306,22 @@ Can_test_motor/
 ### Lịch sử bàn giao:
 <!-- Agent mới ghi tiếp vào dưới dòng này, entry mới nhất lên trên cùng -->
 
+#### [2026-09-09 11:30] - OpenCode (Muse Spark) — Debug bringup Nav2 full: MPPI SIGILL→DWB, plugin `/` vs `::`, EKF đói CPU, discovery mù
+- **P0 MPPI SIGILL (đã vượt qua):** `controller_server` chết exit -4. GDB backtrace: lệnh `ldaddal` (ARMv8.1-LSE) trong `MPPIController::configure()` của lib apt 1.1.18 (cả 1.1.20 cũng dính 117 LSE) — TX2 ARMv8.0 không chạy được. Fix: `config/nav2/controller.yaml` chuyển `FollowPath` sang `dwb_core::DWBLocalPlanner` (DWB + critics sạch LSE, đã configure đủ 7 critics). MPPI muốn dùng lại phải build source trên TX2 (quy trình đã ghi trong chat).
+- **Tên plugin `/` vs `::` (đã sửa):** `planner_server` FATAL vì `nav2_theta_star_planner::ThetaStarPlanner` không tồn tại (tên đúng `nav2_theta_star_planner/ThetaStarPlanner`); `behavior_server` FATAL tương tự với 4 behaviors (`nav2_behaviors/Spin|BackUp|DriveOnHeading|Wait`). Cả hai làm lifecycle abort bringup → bt_navigator không active → click goal bị ngó lơ. Đã sửa `planner_server.yaml`, `recovery.yaml`.
+- **EKF đói CPU (đã giảm tải):** load ~14/6 nhân (rviz2 62% + bno055 Python 31% D-state I2C). Đã hạ EKF 20→10Hz, IMU 50→25Hz, AMCL 3000/800→1500/400 hạt, tắt RViz trên Jetson. Kết quả: `/odometry/filtered` chuẩn 10.0Hz stddev 0.003. Nới thêm `amcl transform_tolerance` 0.5→1.0.
+- **Discovery mù (đã rõ nguyên nhân):** `ros2 node list` rỗng dù process sống + domain khớp → ros2 daemon kẹt. Bypass `--no-daemon`. Phát hiện thêm driver LiDAR ngoài tự spawn `scan_to_scan_filter_chain` trùng tên với filter của mình → đã đổi tên bên mình thành `scan_to_scan_filter_main` trong `robot.launch.py`.
+- **File đã sửa (chưa commit hết — kiểm tra `git status`):** `config/nav2/controller.yaml` (DWB), `planner_server.yaml` (`/`), `recovery.yaml` (`/` ×4), `ekf.yaml` (10Hz), `bno055_params_i2c.yaml` (25Hz), `amcl_config.yaml` (particles + tolerance), `launch/robot.launch.py` (tên filter), `TROUBLESHOOTING_GUIDE.md` (+Lỗi 16, 17).
+- **Trạng thái bringup:** `Managed nodes are active` cả 2 manager lần đầu tiên. Còn dở: đặt pose (đã nhận 11.165,-8.485) → chờ hết spam out-of-bounds → test goal tự hành. AMCL vẫn drop scan khi TF trễ (frame `laser` của driver vs `laser_frame` của mình — backlog).
+- **Bước tiếp theo:** 1) Test goal tự hành end-to-end. 2) Dọn filter thừa của driver ngoài. 3) Gộp frame laser về 1 mối.
+
+#### [2026-09-09 10:45] - OpenCode (Muse Spark) — Viết lại TROUBLESHOOTING_GUIDE.md đầy đủ 15 lỗi (hiện tượng/tác hại/nguyên nhân/xử lý)
+- **Trạng thái hiện tại:** Giữ nguyên 7 lỗi cũ, bổ sung: spawner timeout, mất UDP khi chạy (E1), CAN `0xEE01`/kẹt tải `0xEEEE`, Twist type, odom ngược hướng, nút Y nửa chết, EKF trễ hạn + reset spike, MPPI/RK3399, AMCL nhảy pose, 3 pitfalls firmware cấm tái phạm, cheatsheet mở rộng (controller list, TF echo, frame_id check).
+- **File đã sửa:** `TROUBLESHOOTING_GUIDE.md` (viết lại toàn bộ 7 nhóm).
+- **Lưu ý:** Tài liệu cũ ghi Jetson `.50`, chuẩn hiện tại `.10` — đã ghi chú verify trong guide mục 1.
+- **Bước tiếp theo:** Test rút dây LAN kiểm tra E1 tự hồi phục trên xe thật.
+---
+
 #### [2026-09-09 10:35] - Antigravity (Gemini 3.8 Flash) — Hoàn tất chuẩn hóa 14 mục kỹ thuật, dọn sạch build target legacy & đồng bộ an toàn
 - **Trạng thái hiện tại:**
   - **Chuẩn hóa Build Target:** Gỡ bỏ target build `zlac_udp_odom_node` khỏi `CMakeLists.txt` (vì hệ thống đã chuyển hẳn sang C++ `ros2_control` hardware interface `zlac_hardware_interface`). Chuyển file mã nguồn `src/zlac_udp_odom_node.cpp` vào `src/legacy/` và header `include/can_test_motor/zlac_udp_odom_node.hpp` vào `include/can_test_motor/legacy/` để tránh header mồ côi. Cập nhật banner thông báo trong `launch/legacy/teleop.launch.py` và `teleop_robot.launch.py`.

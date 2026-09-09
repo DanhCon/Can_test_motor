@@ -186,7 +186,25 @@
 * **Hiện tượng:** `planner_server` spam `Sensor origin at (x, y) is out of map bounds ... cannot raytrace`, đặt goal không đi.
 * **Tác hại:** Global costmap không raytrace được, planner không lập đường đi từ vị trí robot.
 * **Nguyên nhân:** AMCL `initial_pose` mặc định (0,0,0) nằm ngoài vùng bản đồ đã quét (VD map `x∈[0, 31.78], y∈[-13.54, -4.06]` không chứa `(0,0)`).
-* **Cách xử lý:** Trên RViz dùng `2D Pose Estimate` đặt pose đúng vị trí thật của xe trong map trước khi đặt goal. Kiểm tra biên map: `ros2 topic echo /map --once | grep -E "width|height|resolution|origin"`.
+* **Cách xử lý:** Trên RViz dùng `2D Pose Estimate` đặt pose đúng vị trí thật của xe trong map trước khi đặt goal (hoặc CLI: `ros2 topic pub --once /initialpose geometry_msgs/msg/PoseWithCovarianceStamped "{header: {frame_id: 'map'}, pose: {...}}"`). Kiểm tra biên map: `ros2 topic echo /map --once | grep -E "width|height|resolution|origin"`.
+
+### 🚨 Lỗi 18: `controller_server` chết SIGILL trên TX2 (MPPI chứa lệnh ARMv8.1)
+* **Hiện tượng:** `process has died [exit code -4]`, GDB: `SIGILL` tại lệnh `ldaddal` trong `MPPIController::configure()` (`libmppi_controller.so` apt 1.1.18 và 1.1.20 đều dính, 117+146 lệnh LSE).
+* **Tác hại:** Nav2 liệt hoàn toàn.
+* **Nguyên nhân:** Binary apt build cho ARMv8.1+ (LSE atomics), TX2 (Cortex-A57/Denver 2, ARMv8.0) không thực thi được.
+* **Cách xử lý:** (1) Tạm: chuyển `FollowPath` sang `dwb_core::DWBLocalPlanner` (DWB + critics đã quét sạch LSE). Quét lib mới bằng `objdump -d <lib> | grep -cE "ldaddal|staddl|casal|swpal"` — phải ra 0 mới dùng. (2) Triệt để: build `nav2_mppi_controller` từ source ngay trên TX2 trong workspace overlay riêng.
+
+### 🚨 Lỗi 19: CLI mù tịt dù node đang chạy (`ros2 node list` rỗng)
+* **Hiện tượng:** Process đầy (`ps` thấy hết) nhưng `ros2 node/lifecycle/topic list` rỗng dù `ROS_DOMAIN_ID` khớp.
+* **Tác hại:** Không kiểm tra/chẩn đoán được gì bằng CLI.
+* **Nguyên nhân:** ros2 daemon kẹt (không phải DDS — data-path giữa các node vẫn sống, AMCL vẫn nhận scan).
+* **Cách xử lý:** Mọi lệnh check thêm cờ `--no-daemon` (VD `ros2 node list --no-daemon`), hoặc `ros2 daemon stop` rồi thử lại.
+
+### 🚨 Lỗi 20: Trùng tên node filter LiDAR (driver ngoài tự spawn filter)
+* **Hiện tượng:** ROS cảnh báo nodes share an exact name; 2 `scan_to_scan_filter_chain` lọc trùng việc.
+* **Tác hại:** Nhầm lẫn topic, phí CPU, khó debug.
+* **Nguyên nhân:** `ole2dv2_launch.py` của driver ngoài tự kèm 1 filter (config của package khác), cộng filter của `robot.launch.py`.
+* **Cách xử lý:** Đổi tên filter bên mình thành `scan_to_scan_filter_main` (đã làm). Về lâu dài: vô hiệu filter thừa bên driver ngoài hoặc gộp về 1 tầng duy nhất.
 
 ---
 
