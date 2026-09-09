@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """
 ==============================================================================
-Launch file cho OLE LiDAR (oleros2 / ros2_lidar) kết hợp laser_filters
-Kiến trúc chuẩn trường:
+[STANDALONE DEBUG ONLY] Launch file cho OLE LiDAR kết hợp laser_filters
+LƯU Ý: File này CHỈ DÙNG ĐỂ KIỂM TRA ĐỘC LẬP CẢM BIẾN OLE LIDAR.
+KHÔNG chạy file này cùng lúc với robot.launch.py (vì robot.launch.py đã tích hợp sẵn).
+Kiến trúc chuẩn:
   - lidar_driver (ros2_lidar): Phát tia quét thô 360 độ ra topic /scan_raw
   - laser_filters: Nhận /scan_raw, gọt góc che sau lưng xe (+-119 độ),
                    xuất bản tia quét chuẩn ra /scan (15 Hz)

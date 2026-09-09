@@ -24,12 +24,27 @@ CallbackReturn ZlacHardwareInterface::on_init(const hardware_interface::Hardware
     std::string ip = info_.hardware_parameters.count("stm32_ip") ? info_.hardware_parameters.at("stm32_ip") : "192.168.1.100";
     int port = std::stoi(info_.hardware_parameters.count("stm32_port") ? info_.hardware_parameters.at("stm32_port") : "8888");
 
+    // Đọc cấu hình đảo chiều Motor B (mặc định true do 2 motor lắp đối xứng 180 độ)
+    if (info_.hardware_parameters.count("motor_b_reverse")) {
+        std::string rev_str = info_.hardware_parameters.at("motor_b_reverse");
+        motor_b_reverse_ = (rev_str == "true" || rev_str == "1" || rev_str == "True");
+    }
+
+    // Đọc cổng lắng nghe UDP cục bộ (mặc định 8888)
+    // CẢNH BÁO: local_port PHẢI KHỚP với cổng đích gửi Telemetry trong firmware STM32 (mặc định 8888)
+    int local_port = 8888;
+    if (info_.hardware_parameters.count("local_port")) {
+        local_port = std::stoi(info_.hardware_parameters.at("local_port"));
+    }
+
     hw_commands_velocities_.resize(2, 0.0);
     hw_states_positions_.resize(2, 0.0);
     hw_states_velocities_.resize(2, 0.0);
 
-    driver_ = std::make_unique<ZlacUdpDriver>(ip, port, 8888);
-    RCLCPP_INFO(rclcpp::get_logger("ZlacHardwareInterface"), "Khởi tạo ZlacHardwareInterface kết nối STM32 tại %s:%d", ip.c_str(), port);
+    driver_ = std::make_unique<ZlacUdpDriver>(ip, port, local_port);
+    RCLCPP_INFO(rclcpp::get_logger("ZlacHardwareInterface"),
+                "Khởi tạo ZlacHardwareInterface: STM32 %s:%d, local_port=%d, motor_b_reverse=%s",
+                ip.c_str(), port, local_port, motor_b_reverse_ ? "true" : "false");
 
     return CallbackReturn::SUCCESS;
 }
@@ -102,8 +117,19 @@ void ZlacHardwareInterface::ioLoop() {
             accumulated_pos_right_ = motor_b_reverse_ ? -fb.pos_right : fb.pos_right;
             current_vel_left_ = fb.vel_left_rad_s;
             current_vel_right_ = motor_b_reverse_ ? -fb.vel_right_rad_s : fb.vel_right_rad_s;
+            if (!connection_healthy_) {
+                RCLCPP_INFO(
+                    rclcpp::get_logger("ZlacHardwareInterface"),
+                    "============================================================");
+                RCLCPP_INFO(
+                    rclcpp::get_logger("ZlacHardwareInterface"),
+                    "[RECOVERY] ĐÃ KHÔI PHỤC KẾT NỐI UDP VỚI STM32! XE HOẠT ĐỘNG TRỞ LẠI BÌNH THƯỜNG.");
+                RCLCPP_INFO(
+                    rclcpp::get_logger("ZlacHardwareInterface"),
+                    "============================================================");
+                connection_healthy_ = true;
+            }
             last_rx_time_ = std::chrono::steady_clock::now();
-            connection_healthy_ = true;
 
             /* Tắt log định kỳ để giữ terminal sạch sẽ (chỉ bật khi DEBUG) */
             // auto now = std::chrono::steady_clock::now();
@@ -136,13 +162,21 @@ hardware_interface::return_type ZlacHardwareInterface::read(const rclcpp::Time &
     // Cơ chế Grace Period 1.0 giây
     if (time_since_rx > feedback_grace_period_sec_) {
         if (connection_healthy_) {
-            RCLCPP_ERROR(rclcpp::get_logger("ZlacHardwareInterface"),
-                         "CẢNH BÁO: Mất kết nối UDP tới STM32 quá %.2fs! Dừng an toàn.", time_since_rx);
+            RCLCPP_WARN(rclcpp::get_logger("ZlacHardwareInterface"),
+                        "CẢNH BÁO: Mất kết nối UDP tới STM32 quá %.2fs! Dừng an toàn (giữ controller hoạt động).", time_since_rx);
             connection_healthy_ = false;
         }
-        hw_states_velocities_[0] = 0.0;
-        hw_states_velocities_[1] = 0.0;
-        return hardware_interface::return_type::ERROR;
+        double ticks_to_rad = (2.0 * kPi) / cpr_;
+        {
+            std::lock_guard<std::mutex> lock(io_mutex_);
+            hw_states_positions_[0] = static_cast<double>(accumulated_pos_left_) * ticks_to_rad;
+            hw_states_positions_[1] = static_cast<double>(accumulated_pos_right_) * ticks_to_rad;
+            hw_states_velocities_[0] = 0.0;
+            hw_states_velocities_[1] = 0.0;
+        }
+        // Trả về OK để controller_manager KHÔNG deactivate controller bánh xe.
+        // Khi có lại mạng UDP từ STM32, xe sẽ tự động tiếp tục hoạt động bình thường.
+        return hardware_interface::return_type::OK;
     }
 
     double ticks_to_rad = (2.0 * kPi) / cpr_;

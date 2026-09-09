@@ -84,11 +84,6 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-install(PROGRAMS
-  scripts/zlac_udp_odom_node.py
-  scripts/teleop_joy.py
-  DESTINATION lib/${PROJECT_NAME})
-
 install(DIRECTORY
   launch
   config

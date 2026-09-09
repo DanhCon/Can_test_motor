@@ -1,3 +1,12 @@
+#!/usr/bin/env python3
+"""
+==============================================================================
+[STANDALONE DEBUG ONLY] Launch file kiểm tra độc lập cảm biến IMU BNO055 (I2C)
+LƯU Ý: File này CHỈ DÙNG ĐỂ KIỂM TRA ĐỘC LẬP.
+KHÔNG chạy file này cùng lúc với robot.launch.py (vì robot.launch.py đã tích hợp sẵn).
+==============================================================================
+"""
+
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription

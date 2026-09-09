@@ -1,2 +1,7 @@
 __pycache__/
 *.msi
+build/
+install/
+log/
+past_queries.txt
+*.pyc

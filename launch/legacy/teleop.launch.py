@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+"""
+[LEGACY / KHÔNG SỬ DỤNG TRỰC TIẾP]
+File launch này thuộc kiến trúc cũ (dùng node zlac_udp_odom_node bind UDP 8888).
+Hiện tại hệ thống đã chuyển sang ros2_control C++ (robot.launch.py).
+KHÔNG chạy file này cùng lúc với robot.launch.py để tránh lỗi 'Address already in use'.
+"""
+
 import os
 from launch import LaunchDescription
 from launch_ros.actions import Node

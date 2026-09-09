@@ -7,7 +7,7 @@ twist_mux:
         timeout: 0.25
         priority: 99
 
-      # Mức 2: Bàn phím điều khiển từ xa
+      # Mức 2: Bàn phím điều khiển từ xa (Dự phòng tương lai, hiện tại chưa sử dụng)
       keyboard:
         topic: /key_vel
         timeout: 0.5

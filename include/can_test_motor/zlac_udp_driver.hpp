@@ -6,7 +6,7 @@
 
 
 
-namespace can_test_motor { // này là gì ta ????
+namespace can_test_motor { // Namespace giao tiếp phần cứng robot
 #pragma pack(push, 1)
 // Gói điều khiển gửi xuống STM32 (12 bytes)
 struct UDP_ControlPacket {
@@ -29,7 +29,7 @@ struct UDP_FeedbackPacket {
     uint16_t bus_voltage;// Điện áp Pin / DC Bus
 };
 
-#pragma pack(pop)   // này là gì ta ????
+#pragma pack(pop)   // Khôi phục byte alignment mặc định
 
 struct ZlacFeedbackData {
     int32_t pos_left{0};

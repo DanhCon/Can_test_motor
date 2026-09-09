@@ -16,7 +16,7 @@ def generate_launch_description():
         executable='twist_mux',
         name='twist_mux',
         parameters=[topics_file, locks_file],
-        remappings=[('cmd_vel_out', '/diff_drive_controller/cmd_vel')],
+        remappings=[('cmd_vel_out', '/diff_drive_controller/cmd_vel_unstamped')],
         output='screen',
     )
 

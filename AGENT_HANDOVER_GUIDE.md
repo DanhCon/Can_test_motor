@@ -87,14 +87,14 @@ Can_test_motor/
 ### 2.4. Chi tiết các File Khởi động (`launch/`)
 | Tên File | Các Node được khởi chạy | Tham số & Tùy biến quan trọng |
 | :--- | :--- | :--- |
-| **`teleop.launch.py`** | **[LAUNCH CHÍNH ĐIỀU KHIỂN ROBOT]**<br>1. `joy_node`<br>2. `teleop_joy.py`<br>3. `zlac_udp_odom_node.py` | • Đọc tay cầm tại `/dev/input/js0`.<br>• **Cấu hình tay cầm chuẩn PS4:** Cần TRÁI (`axis_linear = 1`) lái Tiến/Lùi, Cần PHẢI (`axis_angular = 2`) bẻ lái Xoay xe.<br>• Nút Deadman L1 (`btn_deadman = 9`), Turbo R1 (`btn_turbo = 5`), E-stop B (`btn_estop = 1`), Reset odom Y (`btn_reset_odom = 3`).<br>• Tự động truyền các thông số cơ khí chuẩn: `wheel_radius = 0.0535`, `wheel_base = 0.45`, `publish_tf = True`. |
-| **`teleop_robot.launch.py`** | 1. `joy_node`<br>2. `teleop_joy.py`<br>3. `zlac_udp_odom_node.py` | • Phiên bản cấu hình tốc độ mềm hơn (`0.5 m/s` thường, `1.2 m/s` turbo, `axis_angular = 3`). Thích hợp cho người mới làm quen hoặc test trong không gian hẹp. |
-| **`bno055.launch.py`** | 1. `bno055_node`<br>2. `static_transform_publisher` (`base_link -> imu_link`) | • Nạp file cấu hình `bno055_params_i2c.yaml`.<br>• **Static TF tọa độ lắp IMU thực tế:** `x = 0.175 m, y = -0.048 m, z = 0.041 m, yaw = 0.0, pitch = 0.0, roll = 0.0`. |
-| **`ekf.launch.py`** | **[LAUNCH DUNG HỢP TOÀN BỘ ROBOT (ALL-IN-ONE) — ĐANG CHẠY CHÍNH]**<br>1. `bno055_node` + static TF `imu_link`<br>2. `zlac_udp_odom_node` (`publish_tf=False`)<br>3. `ekf_node` (`robot_localization`)<br>4. OLE LiDAR (`ros2_lidar/ole2dv2_launch.py`)<br>5. `joy_node` + `teleop_joy` | • **Bật đồng bộ toàn bộ Robot:** Động cơ + IMU + EKF + LiDAR + Gamepad.<br>• Tự động kết nối và chạy đủ cả 3 thiết bị trên mạng Switch 5V.<br>• Tham số bật/tắt linh hoạt: `use_joy:=true`, `use_bno055:=true`, `use_lidar:=true`.<br>• **Tương thích C++ (2026-09-06):** Mọi param launch truyền cho 2 node (`stm32_ip/port`, `local_port`, `wheel_radius/base`, `publish_tf`, `enable_smoother`, `max_linear/angular`, full cụm teleop_joy) đều đã có trong bản C++ với default khớp Python (`cpr 4096`, `motor_b_reverse true`, `deadzone 0.08`, `publish_rate 20.0`). Binary C++ trùng tên executable nên launch KHÔNG cần sửa. |
-| **`robot.launch.py`** | **[ALIAS LAUNCH TOÀN DIỆN ROBOT — ĐANG CHẠY CHÍNH (2026-09-06)]** | • Gọi trực tiếp `ekf.launch.py` KHÔNG kèm argument → chạy full defaults: `use_joy=true`, `use_bno055=true`, `use_lidar=true` (động cơ + IMU + EKF + OLE LiDAR + gamepad).<br>• Lệnh chạy: `ros2 launch can_test_motor robot.launch.py`.<br>• **Tương thích C++:** include chuyển tiếp sang cùng 2 executable trùng tên nên không cần sửa gì khi đổi Python ↔ C++. |
-| **`lidar.launch.py`** | **[LAUNCH TỔNG HỢP CẢM BIẾN QUÉT LASER]**<br>Hỗ trợ cả OLE LiDAR và RPLidar | • Cung cấp các tham số dòng lệnh linh hoạt:<br>&nbsp;&nbsp;`use_ole:=true` (mặc định bật OLE LiDAR qua Ethernet IP `192.168.1.101`).<br>&nbsp;&nbsp;`use_rplidar:=false` (tùy chọn bật RPLidar qua USB `/dev/ttyUSB0`).<br>• Tự động gán frame `laser_frame` đồng nhất cho cả 2 loại cảm biến. |
-| **`ole_lidar.launch.py`** | 1. `ole2dv2_launch.py` (`ros2_lidar`) | • Khởi chạy độc lập cảm biến OLE LiDAR (LifecycleNode + filter + TF). |
-| **`rplidar.launch.py`** | 1. `sllidar_node` | • Khởi chạy độc lập RPLidar qua cổng USB Serial `/dev/ttyUSB0` (baudrate 115200) với frame `laser_frame`. |
+| **`bringup_all.launch.py`** | **[LAUNCH TOÀN DIỆN TỰ HÀNH — ALL-IN-ONE CHÍNH THỨC]**<br>1. `robot.launch.py` (Hardware + EKF + LiDAR + IMU + Gamepad)<br>2. `amcl.launch.py` (Map Server + AMCL Localization)<br>3. `nav2.launch.py` (Costmap, Planner, Controller MPPI, Recovery) | • Khởi chạy trọn vẹn toàn bộ xe tự hành trong đúng **1 câu lệnh duy nhất**.<br>• Tham số tùy biến linh hoạt: `use_amcl:=true`, `use_nav2:=true`, `use_joy:=true`, `enable_deadman:=false`.<br>• Lệnh chạy: `ros2 launch can_test_motor bringup_all.launch.py`. |
+| **`robot.launch.py`** | **[LAUNCH NỀN TẢNG PHẦN CỨNG — TEST TAY CẦM / CẢM BIẾN]**<br>1. `ros2_control` (`ZlacHardwareInterface` C++ kết nối STM32 50Hz)<br>2. `joint_state_broadcaster` + `diff_drive_controller`<br>3. `twist_mux` (Ưu tiên Joy > Nav)<br>4. Gamepad `joy_node` + `teleop_joy`<br>5. IMU `bno055_node` + Static TF<br>6. EKF `ekf_node` (`robot_localization` 20Hz)<br>7. OLE LiDAR + `laser_filters` (`/scan_raw` $\to$ `/scan` 15Hz) | • Dùng khi chỉ cần test lái tay, test động cơ hoặc test cảm biến mà không cần nạp bản đồ.<br>• Lệnh chạy: `ros2 launch can_test_motor robot.launch.py enable_deadman:=false`. |
+| **`amcl.launch.py`** | 1. `map_server`<br>2. `amcl`<br>3. `lifecycle_manager_localization` | • Nạp bản đồ tĩnh `maps/map.yaml` và chạy thuật toán hạt Monte Carlo so khớp `/scan` để phát TF `map -> odom`. |
+| **`nav2.launch.py`** | 1. `controller_server` (MPPI)<br>2. `planner_server`<br>3. `bt_navigator`<br>4. `behavior_server` + `lifecycle_manager_navigation` | • Điều hướng tránh vật cản tự động, xuất lệnh `/cmd_vel` tới `twist_mux`. |
+| **`legacy/teleop.launch.py`** | **[LEGACY - ĐÃ CHUYỂN VÀO THƯ MỤC LEGACY]** | • Kiến trúc Python cũ (dùng `zlac_udp_odom_node.py`). KHÔNG chạy cùng `robot.launch.py`. |
+| **`bno055.launch.py`** | 1. `bno055_node` + TF `base_link -> imu_link` | • **[STANDALONE DEBUG ONLY]** Kiểm tra riêng cảm biến IMU (không chạy kèm `robot.launch.py`). |
+| **`ole_lidar.launch.py`** | 1. `ole2dv2_launch.py` + `laser_filters` + TF | • **[STANDALONE DEBUG ONLY]** Kiểm tra riêng LiDAR OLE và bộ lọc góc quét $\pm 119^\circ$. |
+| **`lidar.launch.py`** | 1. OLE hoặc RPLidar + `laser_filters` + TF | • **[STANDALONE DEBUG ONLY]** Kiểm tra tổng hợp các loại LiDAR. |
 
 ---
 
@@ -305,7 +305,7 @@ Can_test_motor/
   - `launch/robot.launch.py`: Remap sang `/diff_drive_controller/cmd_vel_unstamped`, kích hoạt tuần tự spawner, tự dọn SHM.
   - `src/teleop_joy.cpp` & `include/can_test_motor/teleop_joy.hpp`: Xuất bản tin `Twist` lên `/input_joy/cmd_vel`, ngắt truyền sau 3 frames dừng để nhường Nav2.
   - `src/zlac_hardware_interface.cpp`: Log định kỳ `[STM32_STAT]` 2s, fix build `steady_clock`.
-  - `config/ole2dv2.yaml` & `params/ole2dv2.yaml`: Cập nhật `lidar_ip: 192.168.1.101`.
+  - `config/ole2dv2.yaml` & `params/ole2dv2.yaml` (thuộc package ngoài `ros2_lidar` trên Jetson TX2): Cập nhật `lidar_ip: 192.168.1.101`.
   - Tạo sổ tay: `TROUBLESHOOTING_GUIDE.md`.
 - **Lệnh verify nhanh (Cheat sheet khởi động):**
   ```bash

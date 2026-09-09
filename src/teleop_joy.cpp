@@ -214,7 +214,7 @@ void GamepadTeleopNode::call_reset_odom_service()
         std::placeholders::_1));
     (void)future;
   } else {
-    RCLCPP_WARN(this->get_logger(), "Service /reset_odom chua san sang!");
+    RCLCPP_DEBUG(this->get_logger(), "Service /reset_odom chua san sang (ros2_control su dung /set_pose).");
   }
 
   geometry_msgs::msg::PoseWithCovarianceStamped reset_pose;

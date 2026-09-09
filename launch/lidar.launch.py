@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
 ==============================================================================
-Launch file tổng hợp cho LIDAR (OLE + RPLidar)
-Kết hợp cả 2 loại LIDAR vào 1 launch file thuận tiện
+[STANDALONE DEBUG ONLY] Launch file tổng hợp cho LIDAR (OLE + RPLidar)
+LƯU Ý: File này CHỈ DÙNG ĐỂ KIỂM TRA ĐỘC LẬP CẢM BIẾN LIDAR.
+KHÔNG chạy file này cùng lúc với robot.launch.py (vì robot.launch.py đã tích hợp sẵn).
 ==============================================================================
 
 Cách dùng:

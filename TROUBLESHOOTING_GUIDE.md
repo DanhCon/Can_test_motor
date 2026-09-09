@@ -138,14 +138,19 @@ Mỗi khi hệ thống bị treo, đơ cổng hoặc chuẩn bị khởi động
 rm -rf /dev/shm/fastrtps*
 kill -9 $(ps -ef | grep -E 'ros2_control_node|zlac|lidar|laser_filters|twist_mux' | grep -v grep | awk '{print $2}') 2>/dev/null
 
-# 2. Khởi động toàn bộ Robot (Động cơ + LiDAR + IMU + Gamepad)
+# 2. LỰA CHỌN KHỞI CHẠY:
+# Cách A: Khởi động TOÀN BỘ TỰ HÀNH (Hardware + AMCL + Nav2) trong 1 lệnh duy nhất:
+source /home/nhatbot_ws/install/setup.bash
+ros2 launch can_test_motor bringup_all.launch.py enable_deadman:=false
+
+# Cách B: Chỉ khởi động phần cứng để test tay cầm / cảm biến (không nạp bản đồ):
 source /home/nhatbot_ws/install/setup.bash
 ros2 launch can_test_motor robot.launch.py enable_deadman:=false
 ```
 
 Kiểm tra sức khỏe hệ thống ở Terminal 2:
 ```bash
-# Kiểm tra tần số quét LiDAR (đạt chuẩn ~15 Hz)
+# Kiểm tra tần số quét LiDAR (đạt chuẩn ~15 Hz từ laser_filters)
 ros2 topic hz /scan
 
 # Kiểm tra tần số Odometry đã dung hợp EKF (đạt chuẩn ~20 Hz mượt mà, nhẹ tải CPU Jetson TX2)

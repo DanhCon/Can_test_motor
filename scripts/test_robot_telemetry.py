@@ -34,7 +34,15 @@ def calculate_crc16(data: bytes) -> int:
 
 def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind(("0.0.0.0", LOCAL_PORT))
+    try:
+        sock.bind(("0.0.0.0", LOCAL_PORT))
+    except OSError as e:
+        print("\n" + "=" * 70)
+        print(f"[LỖI KHỞI ĐỘNG] Không thể chiếm cổng UDP {LOCAL_PORT}: {e}")
+        print(f"Nguyên nhân: Robot đang chạy (robot.launch.py hoặc ros2_control đang giữ cổng {LOCAL_PORT}).")
+        print("Cách xử lý: Vui lòng DỪNG ROBOT (Ctrl+C trên launch chính) trước khi chạy script test phần cứng này!")
+        print("=" * 70 + "\n")
+        return
     sock.settimeout(0.01)
 
     tx_count = 0
