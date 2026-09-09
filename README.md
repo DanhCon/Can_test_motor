@@ -395,21 +395,21 @@ Hệ thống là một **Cầu nối phần cứng thời gian thực (Hard Real
 ## 8. VẬN HÀNH ROS 2 TELEOP & TỐI ƯU HÓA CHUYỂN ĐỘNG ROBOT
 
 ### 8.1 Sơ đồ ánh xạ tay cầm PS4 (DualShock 4 Bluetooth)
-Hệ thống sử dụng file launch `launch/teleop.launch.py` kết nối trực tiếp tay cầm Bluetooth (`/dev/input/js0`):
-* **Cần TRÁI (Axis 1 - Lên / Xuống):** Điều khiển Vận tốc tiến / lùi ($v = \pm 0.8\,\text{m/s}$).
-* **Cần PHẢI (Axis 2/3 - Trái / Phải):** Bẻ lái quay góc ($\omega = \pm 0.8\,\text{rad/s}$).
-* **Nút L1 (Button 9):** Cò an toàn Deadman Switch (Bắt buộc giữ L1 để cấp lực chạy xe; buông tay là xe dừng ngay).
-* **Nút R1 (Button 5):** Turbo Boost (Tăng tốc độ lên $1.2\,\text{m/s}$).
+Hệ thống sử dụng file launch `launch/robot.launch.py` (hoặc `launch/bringup_all.launch.py`) kết nối tay cầm (`/dev/input/js0`) thông qua cụm `twist_mux`:
+* **Cần TRÁI (Axis 1 - Lên / Xuống):** Điều khiển Vận tốc tiến / lùi ($v = \pm 0.3\,\text{m/s}$).
+* **Cần PHẢI (Axis 2/3 - Trái / Phải):** Bẻ lái quay góc ($\omega = \pm 0.5\,\text{rad/s}$).
+* **Nút L1 (Button 4/9/10):** Cò an toàn Deadman Switch (Bắt buộc giữ L1 để cấp lực chạy xe; buông tay là xe dừng ngay).
+* **Nút R1 (Button 5/7/11):** Turbo Boost.
 * **Nút B / Tròn (Button 1):** Phanh dừng khẩn cấp E-Stop.
-* **Nút Y / Tam giác (Button 3):** Reset mốc tọa độ Odometry về $(0, 0, 0)$.
+* **Nút Y / Tam giác (Button 3):** Reset mốc tọa độ EKF về $(0, 0, 0)$.
 
 ### 8.2 Cấu hình gia tốc chống giật (Acceleration Profile Tuning)
 1. **Trên Driver ZLAC8015D (`Core/Src/zlac_can.c`):**
    * Object `0x6083:01 & 02` (Profile Acceleration): Cài đặt **`700ms`** (Tăng tốc đầm chắc, giảm dòng xung kích).
    * Object `0x6084:01 & 02` (Profile Deceleration): Cài đặt **`900ms`** (Hãm dừng êm ái, chống lật xe và giật quán tính khi buông cần).
-2. **Trên ROS 2 Gateway (`scripts/zlac_udp_odom_node.py`):**
-   * `linear_accel = 0.8 m/s²`, `angular_accel = 1.2 rad/s²` (Làm mượt vận tốc tuyến tính ở tần số 50Hz).
-   * `min_breakaway_velocity = 0.04 m/s` (Breakaway Kick: Cung cấp lực tức thời ~7.1 RPM để bứt phá ma sát tĩnh ở vạch xuất phát).
+2. **Trên ROS 2 Control (`ZlacHardwareInterface` C++ & `diff_drive_controller`):**
+   * Giới hạn vận tốc an toàn $0.3\,\text{m/s}$, gia tốc góc $0.5\,\text{rad/s}$, chu kỳ điều khiển 50Hz (20ms) đồng bộ với W5500.
+   * Điều phối ưu tiên qua `twist_mux`: Gamepad (99) > Bàn phím (90) > Nav2 tự hành (10).
 
 ### 8.3 Ghi chú hiện tượng ma sát tĩnh (Breakaway Stiction)
 Do 2 động cơ Hub Motor lắp quay mặt vào nhau ($180^\circ$), khi xe tiến/lùi, một motor quay chiều Thuận và motor kia quay chiều Nghịch. Chiều quay Nghịch của động cơ BLDC có mô-men khởi động nhỉnh hơn chiều Thuận ở dải vận tốc siêu chậm ($< 3\,\text{RPM}$), dẫn đến độ lệch nhẹ khi vừa xuất phát rồi cả 2 bánh cùng chuyển động đồng bộ bình thường.

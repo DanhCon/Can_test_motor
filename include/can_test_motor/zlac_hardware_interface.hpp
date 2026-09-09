@@ -60,7 +60,7 @@ private:
     // Giám sát Grace Period (1.0s)
     std::chrono::steady_clock::time_point last_rx_time_;
     double feedback_grace_period_sec_{1.0};
-    bool connection_healthy_{true};
+    std::atomic<bool> connection_healthy_{true};
 };
 }  // namespace can_test_motor
 #endif  // CAN_TEST_MOTOR__ZLAC_HARDWARE_INTERFACE_HPP_
