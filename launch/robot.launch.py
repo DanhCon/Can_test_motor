@@ -3,12 +3,12 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, RegisterEventHandler, TimerAction
+from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription, RegisterEventHandler, TimerAction
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration
-from launch_ros.actions import Node
+from launch_ros.actions import Node, SetRemap
 from launch_ros.parameter_descriptions import ParameterValue
 
 
@@ -239,10 +239,27 @@ def generate_launch_description():
         condition=IfCondition(LaunchConfiguration('use_lidar')),
     )
 
-    # Driver node OLE LiDAR (gói ros2_lidar)
+    # Driver node OLE LiDAR (gói ros2_lidar) remap -> /scan_raw
     ole_lidar_launch_file = os.path.join(get_package_share_directory('ros2_lidar'), 'launch', 'ole2dv2_launch.py')
-    ole_lidar_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(ole_lidar_launch_file),
+    ole_lidar_group = GroupAction([
+        SetRemap(src='/scan', dst='/scan_raw'),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(ole_lidar_launch_file)
+        )
+    ], condition=IfCondition(LaunchConfiguration('use_lidar')))
+
+    # Node laser_filters: /scan_raw -> /scan (gọt góc chắn sau lưng xe +-119 độ)
+    angular_filter_config = os.path.join(pkg_dir, 'config', 'angular_filter.yaml')
+    filter_laser_node = Node(
+        package='laser_filters',
+        executable='scan_to_scan_filter_chain',
+        name='scan_to_scan_filter_chain',
+        output='screen',
+        parameters=[angular_filter_config],
+        remappings=[
+            ('scan', '/scan_raw'),
+            ('scan_filtered', '/scan'),
+        ],
         condition=IfCondition(LaunchConfiguration('use_lidar')),
     )
 
@@ -277,5 +294,6 @@ def generate_launch_description():
 
         # 6. LiDAR
         static_tf_laser,
-        ole_lidar_launch,
+        ole_lidar_group,
+        filter_laser_node,
     ])

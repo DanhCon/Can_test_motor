@@ -540,8 +540,8 @@ Can_test_motor/
 | **IP Thiết bị** | • Jetson TX2: `192.168.1.10`<br>• STM32 W5500: `192.168.1.100`<br>• OLE LiDAR: **`192.168.1.101`** | Đã đổi IP trên Web GUI OLE để tránh trùng IP `100` |
 | **Package ROS 2** | `ros2_lidar` | Thư mục: `nhatbot_drivers/oleros2/src/ros2_lidar` |
 | **Node thực thi** | `lidar_driver` (LifecycleNode) | Tự động configure & activate |
-| **Bộ lọc tia** | `scan_to_scan_filter_chain` (`laser_filters`) | Nạp `config/angular_filter.yaml` |
-| **Topics xuất ra** | **`/scan`** và **`/scan_filtered`** | Tần số đo thực tế: **15.0 Hz** cực kỳ ổn định |
+| **Bộ lọc tia** | `scan_to_scan_filter_chain` (`laser_filters`) | Nạp `config/angular_filter.yaml` (gọt góc sau lưng xe $\pm 119^\circ$) |
+| **Topics xuất ra** | **`/scan_raw`** (thô 360°) $\to$ **`/scan`** (đã lọc góc) | Tần số đo thực tế: **15.0 Hz** cực kỳ ổn định. Nav2 & AMCL nghe trực tiếp `/scan` |
 | **Static TF chuẩn** | `base_link -> laser` | Tọa độ: `x = 0.195 m, y = 0.0 m, z = 0.0557 m` |
 
 ### 11.2 Sơ đồ mạng Switch 5V hoàn chỉnh

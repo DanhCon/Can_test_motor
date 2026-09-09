@@ -19,11 +19,11 @@ Tham số override:
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import Node
+from launch_ros.actions import Node, SetRemap
 
 
 def generate_launch_description():
@@ -51,12 +51,14 @@ def generate_launch_description():
         description='Đường dẫn file cấu hình YAML của OLE LiDAR'
     )
 
-    # 2. Node OLE LiDAR (Ethernet UDP) qua package ros2_lidar
+    # 2. Node OLE LiDAR (Ethernet UDP) qua package ros2_lidar (remap -> /scan_raw)
     ole_launch_file = os.path.join(get_package_share_directory('ros2_lidar'), 'launch', 'ole2dv2_launch.py')
-    ole_node = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(ole_launch_file),
-        condition=IfCondition(use_ole)
-    )
+    ole_node = GroupAction([
+        SetRemap(src='/scan', dst='/scan_raw'),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(ole_launch_file)
+        )
+    ], condition=IfCondition(use_ole))
 
     # 3. Node RPLidar (USB Serial)
     rplidar_node = Node(
@@ -69,10 +71,25 @@ def generate_launch_description():
             'serial_baudrate': 115200,
             'frame_id': 'laser_frame',
         }],
+        remappings=[('/scan', '/scan_raw')],
         condition=IfCondition(use_rplidar)
     )
 
-    # 4. Static TF Publisher: base_link -> laser_frame (Vị trí lắp LiDAR trên xe)
+    # 4. Node laser_filters: /scan_raw -> /scan (gọt góc chắn sau lưng xe +-119 độ)
+    filter_config = os.path.join(pkg_dir, 'config', 'angular_filter.yaml')
+    filter_node = Node(
+        package='laser_filters',
+        executable='scan_to_scan_filter_chain',
+        name='scan_to_scan_filter_chain',
+        output='screen',
+        parameters=[filter_config],
+        remappings=[
+            ('scan', '/scan_raw'),
+            ('scan_filtered', '/scan'),
+        ]
+    )
+
+    # 5. Static TF Publisher: base_link -> laser_frame (Vị trí lắp LiDAR trên xe)
     static_tf_node = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
@@ -89,5 +106,6 @@ def generate_launch_description():
         declare_ole_config,
         ole_node,
         rplidar_node,
+        filter_node,
         static_tf_node
     ])
