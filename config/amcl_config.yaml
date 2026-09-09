@@ -18,7 +18,7 @@ amcl:
     update_min_a: 0.25
     update_min_d: 0.15
     resample_interval: 1
-    transform_tolerance: 0.5
+    transform_tolerance: 1.0           # Nới từ 0.5: chịu được TF trễ khi CPU đói (EKF chậm)
     tf_broadcast: true
     set_initial_pose: true 
     initial_pose:
