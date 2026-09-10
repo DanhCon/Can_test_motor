@@ -212,11 +212,11 @@
 * **Nguyên nhân:** `scan_to_scan_filter_chain` đọc `filter1`, `filter2`... trực tiếp từ params của chính nó (`filter_chain_.configure("", ...)` trong source `laser_filters`). Đổi tên node mà giữ block yaml cũ → ROS 2 lờ cả block → chain rỗng → scan đi qua không lọc.
 * **Cách xử lý:** Dùng block wildcard `/**:` trong file yaml filter để mọi tên node đều nhận params. Verify sau deploy: `ros2 param list /scan_to_scan_filter_main | grep filter1` phải hiện đủ `name/type/params`. **Quy tắc:** đổi tên node xong luôn kiểm tra params vào đủ không.
 
-### 🚨 Lỗi 22: Hai cha TF cho một frame (dual-parent flap)
+### 🚨 Lỗi 22: Hai cha TF cho một frame (dual-parent flap) [ĐÃ SỬA]
 * **Hiện tượng:** TF `laser` nhấp nháy giữa 2 bộ số, AMCL/costmap drop scan + lỗi extrapolation.
 * **Tác hại:** Định vị chập chờn dù từng TF riêng lẻ đều đúng.
-* **Nguyên nhân:** Driver ngoài phát `base_link → laser`, launch mình phát thêm nhánh `... → laser` thứ hai (alias). TF2 cho ghi đè lẫn nhau.
-* **Cách xử lý:** Mỗi frame chỉ 1 cha duy nhất — giữ TF driver cho `laser`, TF mình cho `laser_frame`, không alias nối giữa chúng.
+* **Nguyên nhân:** Driver ngoài phát `base_link → laser`, launch mình phát thêm nhánh thứ hai vào `laser` (alias).
+* **Cách xử lý (đã áp dụng):** Mỗi frame chỉ 1 cha — giữ TF driver cho `laser`, TF mình cho `laser_frame`, xóa alias nối giữa chúng.
 
 ---
 
@@ -253,9 +253,23 @@ ros2 launch can_test_motor robot.launch.py enable_deadman:=false
 Kiểm tra sức khỏe ở Terminal 2:
 ```bash
 ros2 topic hz /scan                        # ~15 Hz (bản đã lọc)
-ros2 topic hz /odometry/filtered           # ~20 Hz (EKF)
+ros2 topic hz /odometry/filtered           # ~10 Hz (EKF)
 ros2 topic echo /diff_drive_controller/odom --once
 ros2 control list_controllers              # joint_state_broadcaster + diff_drive_controller: active
 ros2 run tf2_ros tf2_echo odom base_link   # TF liền mạch, không nhảy
-ros2 topic echo /scan --once | grep frame_id  # phải là laser_frame
+ros2 topic echo /scan --once | grep frame_id  # phải là laser (frame driver ngoài)
+ros2 param list /scan_to_scan_filter_main | grep filter1  # phải hiện đủ name/type/params
 ```
+
+## 8. CẠM BẪY VẬN HÀNH (KHÔNG PHẢI BUG, NHƯNG DỄ VẤP)
+
+### ⚠️ Bẫy 1: Binary ma trong thư mục install
+* colcon **không bao giờ xóa** target đã gỡ khỏi `CMakeLists.txt`. File `install/.../lib/can_test_motor/zlac_udp_odom_node` cũ vẫn nằm đó — chạy nhầm là chiếm port 8888.
+* Sau mỗi lần gỡ node khỏi build, xóa tay 1 lần: `rm -f <file>`, hoặc `rm -rf build install log` rồi build sạch.
+
+### ⚠️ Bẫy 2: `use_ekf:=false` gãy TF, `use_lidar:=false` đói scan
+* diff_drive tắt `enable_odom_tf` nên TF `odom→base_link` chỉ còn EKF phát. Tắt EKF mà vẫn bật Nav2/AMCL/costmap → mù TF toàn tập.
+* Tắt LiDAR mà vẫn bật AMCL/Nav2 → đói scan. Quy tắc: đã tắt cảm biến nào thì chỉ lái tay (`robot.launch.py`), đừng bật Nav2.
+
+### ⚠️ Bẫy 3: `config/nav2/behavior.xml` không ai nạp
+* `nav2.launch.py` không truyền `bt_xml` nên BT mặc định được dùng. Đừng sửa file này rồi tưởng Nav2 đổi theo. Muốn dùng thì thêm param `bt_xml` vào node `bt_navigator`.

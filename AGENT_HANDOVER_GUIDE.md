@@ -284,6 +284,15 @@ Can_test_motor/
 6. **Quy tắc Bàn giao khi Sắp hết Quota/Token (BẮT BUỘC):**
    - Khi Agent nhận thấy sắp hết quota (lỗi 429, `FreeUsageLimitError`), context dài, hoặc người dùng báo `sắp hết`, Agent **phải ghi chú ngay** công việc đang dở vào `Mục 9` bên dưới trước khi dừng.
    - Không được thoát phiên mà không để lại: đang làm gì, sửa tới đâu, bước tiếp theo là gì.
+7. **Quy tắc Ghi chú Phát hiện mới (BẮT BUỘC, hiệu lực từ 2026-09-09):**
+   - Mỗi khi phát hiện bất thường, lỗi tiềm ẩn, cạm bẫy vận hành hay điểm sai chuẩn (dù chưa sửa), Agent **phải ghi ngay** vào `TROUBLESHOOTING_GUIDE.md` (đúng format Hiện tượng → Tác hại → Nguyên nhân → Cách xử lý) + 1 entry ngắn ở `Mục 9`.
+   - Không để kiến thức nằm trong chat — chat mất là mất.
+8. **Quy trình Mở đầu Phiên làm việc (BẮT BUỘC, hiệu lực từ 2026-09-09):**
+   - Trước khi làm BẤT CỨ việc gì, Agent phải tự giác đọc lại để nắm tiến độ, theo thứ tự:
+     1. `git log --oneline -10` + `git status --short` (ai vừa làm gì, còn dở gì).
+     2. `Mục 9` entry mới nhất + `TROUBLESHOOTING_GUIDE.md` (lỗi đã biết, cạm bẫy).
+     3. Các file code/config liên quan trực tiếp tới việc sắp làm (không đoán mò từ trí nhớ).
+   - Không được sửa code khi chưa đọc file đó trong phiên hiện tại.
 
 ---
 
@@ -305,6 +314,16 @@ Can_test_motor/
 
 ### Lịch sử bàn giao:
 <!-- Agent mới ghi tiếp vào dưới dòng này, entry mới nhất lên trên cùng -->
+
+#### [2026-09-09 12:30] - OpenCode (Muse Spark) — Quét phòng ngừa toàn repo: alias TF đã sạch, còn 4 mìn vận hành
+- **Đã verify commit 0423e31:** alias xóa sạch (định nghĩa + list), `static_tf_laser` về chỗ cũ, mỗi frame 1 cha. Không còn lỗi logic nào tìm ra được.
+- **4 điểm ghi nhận (chi tiết trong TROUBLESHOOTING Lỗi 23-24 + cập nhật Lỗi 22):**
+  1. Binary ma `zlac_udp_odom_node` còn sót trong `install/` Jetson (colcon không tự xóa target đã gỡ) — phải `rm` tay.
+  2. `use_ekf:=false` gãy TF `odom→base_link` (diff_drive tắt TF) → chỉ lái tay, cấm Nav2.
+  3. `use_lidar:=false` đói scan → chỉ lái tay.
+  4. `config/nav2/behavior.xml` chết (launch không nạp `bt_xml`) — đừng sửa nhầm tưởng có tác dụng.
+- **Quy tắc làm việc mới (bổ sung §8.7):** Agent mỗi lần phát hiện vấn đề/bất thường (dù chưa sửa) PHẢI ghi chú ngay vào `TROUBLESHOOTING_GUIDE.md` + entry §9, không để kiến thức nằm trong chat.
+- **Bước tiếp theo:** Jetson rm binary ma → test goal tự hành end-to-end.
 
 #### [2026-09-09 12:00] - OpenCode (Muse Spark) — Fix filter mất tác dụng (đổi tên node), dual-parent TF, pose mặc định ngoài map
 - **Lỗi filter (nặng nhất, do chính lần rename tránh duplicate gây ra):** node đổi tên `scan_to_scan_filter_main` nhưng yaml giữ block `scan_to_scan_filter_chain:` → ROS 2 lờ params → chain rỗng → đuôi xe thành vật cản. Đã xác minh bằng source `laser_filters` (`filter_chain_.configure("", ...)` đọc `filter1...` trực tiếp). Fix: block `/**:` wildcard. Verify: `ros2 param list /scan_to_scan_filter_main | grep filter1`.
