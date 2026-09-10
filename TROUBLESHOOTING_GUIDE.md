@@ -218,7 +218,41 @@
 * **Nguyên nhân:** Driver ngoài phát `base_link → laser`, launch mình phát thêm nhánh thứ hai vào `laser` (alias).
 * **Cách xử lý (đã áp dụng):** Mỗi frame chỉ 1 cha — giữ TF driver cho `laser`, TF mình cho `laser_frame`, xóa alias nối giữa chúng.
 
+### 🚨 Lỗi 23: Robot đi lùi thay vì quay đầu khi Goal ở sau lưng [ĐÃ SỬA]
+* **Hiện tượng:** Khi đặt điểm Goal ở phía sau xe, robot tự hành đi lùi cả quãng đường dài thay vì xoay đầu lại rồi mới tiến.
+* **Tác hại:** Đi lùi cực kỳ nguy hiểm vì LiDAR gắn ở đầu xe ($x=0.20$), đuôi xe bị gọt góc $\pm 119^\circ$ nên hoàn toàn là điểm mù (dễ đâm va vào vật cản/người).
+* **Nguyên nhân:** Trong `config/nav2/controller.yaml`, tham số `min_vel_x: -0.15` của DWB cho phép vận tốc lùi. Khi Goal ở sau lưng, DWB chấm điểm quỹ đạo lùi thẳng đạt khoảng cách ngắn nhất mà không cần tốn thời gian quay góc, nên DWB ưu tiên chọn đi lùi.
+* **Cách xử lý:** Trong `config/nav2/controller.yaml` (DWB), hiện tại mặc định giữ `min_vel_x: -0.15` kèm chú thích. Khi muốn xe bắt buộc phải xoay đầu tại chỗ ($v_x = 0, \omega \neq 0$) rồi mới tiến thẳng ($v_x > 0$), chỉ cần đổi thành **`min_vel_x: 0.0`**. (Hành vi phục hồi `BackUp` trong `behavior_server` vẫn cho phép lùi xe an toàn khi kẹt).
+
+### 🚨 Lỗi 24: `Extrapolation Error into the past` do lệch đồng hồ Remote PC & Jetson TX2 [ĐÃ SỬA]
+* **Hiện tượng:** `planner_server` spam lỗi:
+  ```text
+  Extrapolation Error looking up target frame: Lookup would require extrapolation into the past. Requested time ... but the earliest data is at time ...
+  ```
+* **Tác hại:** Nav2 không thể biến đổi tọa độ robot sang hệ quy chiếu `map` $\to$ không lập được đường đi $\to$ goal bị hủy hoặc retry vô tận.
+* **Nguyên nhân:** Lệch giờ hệ thống giữa máy tính chạy RViz (Remote PC) và Jetson TX2 (thực tế đo lệch tới 4 giây). Khi bấm Goal trên RViz của Laptop, header mang timestamp của Laptop (nằm ngoài cửa sổ bộ đệm TF 10 giây của TX2); hoặc do bấm Goal quá sớm ngay khi AMCL vừa nạp chưa kịp phát gói TF đầu tiên.
+* **Cách xử lý:** 
+  1. Đồng bộ giờ giữa 2 máy: `ssh -t <user>@<tx2_ip> "sudo date -s @\$(date +%s)"` hoặc cài đặt NTP/`chrony`.
+  2. Không bấm Goal ngay khi vừa mở: Đợi AMCL nạp xong, bấm `2D Pose Estimate` trước rồi mới bấm `Nav2 Goal`.
+
+### 🚨 Lỗi 25: RViz Message Filter drop gói `frame 'laser'` (`queue is full`) [ĐÃ SỬA]
+* **Hiện tượng:** RViz báo `Message Filter dropping message: frame 'laser' at time ... for reason 'discarding message because the queue is full'`, tia laser đỏ không hiển thị trên map.
+* **Tác hại:** Mất tầm nhìn cảm biến trên giao diện giám sát RViz.
+* **Nguyên nhân:** Fixed Frame trong RViz đang là `map`, nhưng lúc khởi động AMCL chưa có `2D Pose Estimate` nên chưa phát TF `map -> odom`. Khi đứt cầu nối TF `map -> odom`, RViz không thể biến đổi tia laser từ `laser` sang `map` $\to$ hàng đợi Message Filter bị đầy và vứt bỏ gói tin.
+* **Cách xử lý:** Bấm nút **`2D Pose Estimate`** trên RViz kéo thả đúng vị trí xe. Ngay khi AMCL phát TF `map -> odom`, RViz sẽ ngừng drop và laser lập tức hiển thị. Đồng thời nếu topic `/particle_cloud` báo lỗi QoS `RELIABILITY_QOS_POLICY`, đổi Reliability của Particle Cloud trên RViz sang **`Best Effort`**.
+
+### 🚨 Lỗi 26: `Either of the start or goal pose are an obstacle!` và `Pose Goes Off Grid`
+* **Hiện tượng:** `planner_server` báo lỗi khi bấm Goal: `Either of the start or goal pose are an obstacle! Planning algorithm GridBased failed to generate a valid path`. Sau đó robot kích hoạt spin/backup rồi báo `Pose Goes Off Grid` / `Collision Ahead`.
+* **Tác hại:** Xe từ chối di chuyển, kẹt trong chuỗi phục hồi.
+* **Nguyên nhân:** Điểm xuất phát (Start) hoặc điểm đích (Goal) nằm đè lên vật cản hoặc rơi vào vùng phồng an toàn (`inflation_radius: 0.45m`) quanh các bức tường; hoặc vị trí Start bị ước lượng nhầm đè vào tường trên map; hoặc bấm Goal vào vùng xám chưa quét/ngoài biên bản đồ.
+* **Cách xử lý:**
+  1. Đặt xe ở khu vực thoáng (cách các bức tường ít nhất 1 mét).
+  2. Bấm **`2D Pose Estimate`** gán lại vị trí xe thật chuẩn vào khoảng trống màu trắng trên map (khớp với tia laser phản xạ từ tường).
+  3. Bấm **`Nav2 Goal`** vào vùng màu trắng tinh giữa phòng, cách xa mọi bức tường ít nhất $0.5 \sim 1.0\text{ m}$.
+
 ---
+
+
 
 ## 6. LỖI FIRMWARE/PHẦN CỨNG ĐÃ SỬA (CẤM TÁI PHẠM)
 
@@ -273,3 +307,12 @@ ros2 param list /scan_to_scan_filter_main | grep filter1  # phải hiện đủ 
 
 ### ⚠️ Bẫy 3: `config/nav2/behavior.xml` không ai nạp
 * `nav2.launch.py` không truyền `bt_xml` nên BT mặc định được dùng. Đừng sửa file này rồi tưởng Nav2 đổi theo. Muốn dùng thì thêm param `bt_xml` vào node `bt_navigator`.
+
+### ⚠️ Bẫy 4: Git `dubious ownership` khi chạy quyền root trên TX2
+* Khi đăng nhập quyền `root` trên Jetson TX2, Git sẽ chặn lệnh `git pull` với cảnh báo bảo mật `detected dubious ownership in repository`.
+* **Cách xử lý:** Chạy 1 lần lệnh: `git config --global --add safe.directory /home/nhatbot_ws/src/can_test_motor`.
+
+### ⚠️ Bẫy 5: Git pull bị abort do sửa file trực tiếp trên TX2 (`config/ekf.yaml`)
+* Nếu từng mở file sửa trực tiếp trên TX2, `git pull` sẽ từ chối merge và abort (`Your local changes ... would be overwritten by merge`).
+* **Cách xử lý:** Chạy `git stash` để cất thay đổi cục bộ trước khi `git pull origin main`.
+

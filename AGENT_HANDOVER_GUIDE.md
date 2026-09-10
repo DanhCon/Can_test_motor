@@ -315,6 +315,16 @@ Can_test_motor/
 ### Lịch sử bàn giao:
 <!-- Agent mới ghi tiếp vào dưới dòng này, entry mới nhất lên trên cùng -->
 
+#### [2026-09-10 12:20] - Antigravity (Gemini 3.8 Flash) — Tổng kết phiên test Nav2 thực tế: DWB turn-in-place, đồng bộ thời gian TF, gỡ lỗi start/goal in obstacle
+- **Các lỗi đã phân tích & giải quyết thực tế:**
+  1. **Robot đi lùi khi Goal ở sau lưng (Lỗi 23):** `config/nav2/controller.yaml`: Giữ nguyên `min_vel_x: -0.15` kèm chú thích; khi cần cấm lùi để xe bắt buộc xoay đầu tại chỗ thì đổi thành `0.0`. Đổi `vy_samples: 1` (tiết kiệm CPU TX2).
+  2. **`Extrapolation Error into the past` (Lỗi 24):** Do lệch đồng hồ giữa Laptop mở RViz và Jetson TX2 (đo lệch 4 giây). Khi click Goal trên RViz, timestamp thuộc quá khứ đối với TX2 $\to$ rơi khỏi TF buffer 10s. Đã xử lý bằng đồng bộ giờ `date -s` qua SSH.
+  3. **RViz drop gói LaserScan queue is full (Lỗi 25):** Khi Fixed Frame là `map` nhưng AMCL chưa có `2D Pose Estimate`, TF `map -> odom` chưa có $\to$ RViz drop laser. Sau khi gán Pose ban đầu, TF thông suốt và laser hiện bình thường. Khắc phục thêm cảnh báo QoS `/particle_cloud` bằng cách chuyển sang `Best Effort`.
+  4. **`Either of the start or goal pose are an obstacle!` (Lỗi 26):** Do click Goal quá gần tường (trong phạm vi `inflation_radius: 0.45m`) hoặc vị trí xuất phát của robot bị ước lượng nhầm đè lên vật cản trên map. Cách khắc phục: đặt xe ở khu vực thoáng ($>1$m), nạp lại `2D Pose Estimate` và click Goal vào vùng trắng giữa phòng.
+  5. **Bẫy vận hành Git trên TX2 (Bẫy 4 & 5):** `dubious ownership` khi chạy quyền root $\to$ thêm `safe.directory`; conflict `config/ekf.yaml` $\to$ dùng `git stash` trước khi `git pull`.
+- **File đã sửa:** `config/nav2/controller.yaml`, `TROUBLESHOOTING_GUIDE.md` (Lỗi 23-26, Bẫy 4-5), `AGENT_HANDOVER_GUIDE.md`.
+- **Bước tiếp theo:** Người dùng xác nhận cập nhật code lên Jetson TX2 $\to$ kiểm tra robot quay đầu mượt mà khi đặt Goal sau lưng.
+
 #### [2026-09-09 12:30] - OpenCode (Muse Spark) — Quét phòng ngừa toàn repo: alias TF đã sạch, còn 4 mìn vận hành
 - **Đã verify commit 0423e31:** alias xóa sạch (định nghĩa + list), `static_tf_laser` về chỗ cũ, mỗi frame 1 cha. Không còn lỗi logic nào tìm ra được.
 - **4 điểm ghi nhận (chi tiết trong TROUBLESHOOTING Lỗi 23-24 + cập nhật Lỗi 22):**

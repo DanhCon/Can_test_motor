@@ -34,7 +34,10 @@ controller_server:
     FollowPath:
       plugin: "dwb_core::DWBLocalPlanner"
       debug_trajectory_details: false
-      # Khop gioi han vat ly robot (giong MPPI cu): tien 0.30, lui 0.15, xoay 0.60
+      # Giới hạn vận tốc DWB:
+      # - min_vel_x: -0.15 (mặc định hiện tại: cho phép đi lùi tối đa 0.15 m/s).
+      # - CHÚ Ý: Nếu muốn xe BẮT BUỘC quay đầu tại chỗ rồi mới tiến (cấm đi lùi vì đuôi mù LiDAR),
+      #   hãy sửa thành: min_vel_x: 0.0
       min_vel_x: -0.15
       min_vel_y: 0.0
       max_vel_x: 0.30
@@ -50,7 +53,7 @@ controller_server:
       decel_lim_y: 0.0
       decel_lim_theta: -1.20
       vx_samples: 20
-      vy_samples: 5
+      vy_samples: 1 # Robot vi sai không di chuyển ngang (vy=0), đặt 1 để tiết kiệm CPU TX2
       vtheta_samples: 20
       sim_time: 1.7
       linear_granularity: 0.05
