@@ -227,7 +227,10 @@ def generate_launch_description():
     # -------------------------------------------------------------------------
     # 6. CẢM BIẾN QUÉT MÔI TRƯỜNG OLE LIDAR (ETHERNET UDP)
     # -------------------------------------------------------------------------
-    # Static TF Publisher: base_link -> laser_frame (Vị trí lắp OLE LiDAR trên robot)
+    # Static TF Publisher: base_link -> laser_frame (Vi tri lap OLE LiDAR thuc te tren xe)
+    # MOI frame chi 1 cha duy nhat: khong dung alias trung lap voi TF base_link -> laser
+    # cua driver ngoai (tranh dual-parent flap gay drop scan). Scan mang frame `laser`
+    # van tra duoc qua TF driver; frame `laser_frame` dung theo so do thuc te nay.
     static_tf_laser = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
@@ -236,18 +239,6 @@ def generate_launch_description():
         arguments=['--x', '0.20', '--y', '0.0', '--z', '0.15',
                    '--yaw', '0.0', '--pitch', '0.0', '--roll', '0.0',
                    '--frame-id', 'base_link', '--child-frame-id', 'laser_frame'],
-        condition=IfCondition(LaunchConfiguration('use_lidar')),
-    )
-
-    # Static TF Alias: laser_frame -> laser (Đảm bảo tương thích cả 2 tên frame laser và laser_frame)
-    static_tf_laser_alias = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='laser_frame_to_laser_alias_tf',
-        output='screen',
-        arguments=['--x', '0.0', '--y', '0.0', '--z', '0.0',
-                   '--yaw', '0.0', '--pitch', '0.0', '--roll', '0.0',
-                   '--frame-id', 'laser_frame', '--child-frame-id', 'laser'],
         condition=IfCondition(LaunchConfiguration('use_lidar')),
     )
 
@@ -307,7 +298,6 @@ def generate_launch_description():
 
         # 6. LiDAR
         static_tf_laser,
-        static_tf_laser_alias,
         ole_lidar_group,
         filter_laser_node,
     ])

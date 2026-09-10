@@ -21,9 +21,11 @@ amcl:
     transform_tolerance: 1.0           # Nới từ 0.5: chịu được TF trễ khi CPU đói (EKF chậm)
     tf_broadcast: true
     set_initial_pose: true 
+    # Pose mac dinh PHAI nam trong map (map phu x[0,31.78], y[-13.54,-4.06]).
+    # (0,0) nam ngoai map -> spam out-of-bounds tu luc khoi dong. RViz 2D Pose van override duoc.
     initial_pose:
-      x: 0.0
-      y: 0.0
+      x: 11.165
+      y: -8.485
       z: 0.0
       yaw: 0.0
     always_reset_initial_pose: false

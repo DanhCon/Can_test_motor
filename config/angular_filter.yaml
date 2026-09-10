@@ -1,8 +1,11 @@
-scan_to_scan_filter_chain:
+/**:
   ros__parameters:
+    # Wildcard /**: ap dung cho MOI node (node filter cua bringup da doi ten
+    # thanh scan_to_scan_filter_main de tranh dung ten voi driver ngoai — neu giu
+    # ten block cu thi ROS 2 se lo di, chain rong, tia sau lung khong duoc got).
     filter1:
       name: angle_filter
       type: laser_filters/LaserScanAngularBoundsFilter
       params:
-        lower_angle: -2.0769418099 # -119
-        upper_angle: 2.0769418099 # 119
+        lower_angle: -2.0769418099 # -119 do: got goc che sau lung xe
+        upper_angle: 2.0769418099 # +119 do
