@@ -1,6 +1,6 @@
 # SỔ TAY KỸ THUẬT: CHẨN ĐOÁN & KHẮC PHỤC SỰ CỐ ROBOT AMR
 **Hệ thống:** Jetson TX2 (Ubuntu 22.04, ROS 2 Humble) + STM32 W5500 + 2x ZLAC8015D + OLE LiDAR + BNO055
-**Kiến trúc hiện tại:** ros2_control (`ZlacHardwareInterface` C++) + `diff_drive_controller` + `twist_mux` + EKF 20Hz + AMCL + Nav2 (MPPI)
+**Kiến trúc hiện tại:** ros2_control (`ZlacHardwareInterface` C++) + `diff_drive_controller` + `twist_mux` + EKF 10Hz + AMCL + Nav2 (DWB)
 **Launch chính:** `ros2 launch can_test_motor bringup_all.launch.py` (full) hoặc `robot.launch.py` (phần cứng)
 
 > Quy ước mỗi mục: **Hiện tượng** → **Tác hại** → **Nguyên nhân** → **Cách xử lý**.

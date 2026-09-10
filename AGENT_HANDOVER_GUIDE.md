@@ -95,7 +95,7 @@ Can_test_motor/
 | :--- | :--- | :--- |
 | **`diff_drive_controller.yaml`** | Bộ điều khiển 2 bánh vi sai (`ros2_control`) | • Chạy ở tần số `50.0 Hz`, `use_stamped_vel: false` (chuẩn Twist cho Humble).<br>• Bán kính bánh `0.0535 m`, khoảng cách 2 bánh `0.45 m`. |
 | **`twist_mux_topics.yaml`** | Điều phối ưu tiên nguồn vận tốc | • Mức 1 (Ưu tiên 99): Gamepad `/input_joy/cmd_vel` (khi giữ Deadman).<br>• Mức 2 (Ưu tiên 90): Bàn phím `/key_vel` (dự phòng).<br>• Mức 3 (Ưu tiên 10): Tự hành Nav2 `/cmd_vel`. |
-| **`ekf.yaml`** | Bộ lọc Kalman mở rộng (`robot_localization`) | • Chạy ở tần số `20.0 Hz` nhẹ tải CPU Jetson TX2, chế độ `two_d_mode = true`.<br>• `odom0: /diff_drive_controller/odom`, `imu0: /bno055/imu`. |
+| **`ekf.yaml`** | Bộ lọc Kalman mở rộng (`robot_localization`) | • Chạy ở tần số `10.0 Hz` nhẹ tải CPU Jetson TX2, chế độ `two_d_mode = true`.<br>• `odom0: /diff_drive_controller/odom`, `imu0: /bno055/imu`. |
 | **`bno055_params_i2c.yaml`** | Cấu hình cảm biến IMU 9-DOF BNO055 | • Giao tiếp I2C bus 1, tần số đọc `50 Hz`. Frame ID: `imu_link`. Chế độ NDOF (`12`).<br>• Đã nạp sẵn bảng bù sai số thực tế (Calibration Offsets). |
 | **`ole2dv2.yaml`** | Cấu hình cảm biến LiDAR công nghiệp OLE | • Giao tiếp Ethernet UDP IP `192.168.1.101`, subnet `255.255.255.0`, frame `laser_frame`. |
 | **`angular_filter.yaml`** | Bộ lọc tia quét (`laser_filters`) | • Lọc góc sau lưng xe: giới hạn góc quét $[ -119^\circ, +119^\circ ]$ ($[-2.077, +2.077]\,\text{rad}$). |
