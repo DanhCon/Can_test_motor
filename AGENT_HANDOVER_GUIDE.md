@@ -306,6 +306,14 @@ Can_test_motor/
 ### Lịch sử bàn giao:
 <!-- Agent mới ghi tiếp vào dưới dòng này, entry mới nhất lên trên cùng -->
 
+#### [2026-09-09 12:00] - OpenCode (Muse Spark) — Fix filter mất tác dụng (đổi tên node), dual-parent TF, pose mặc định ngoài map
+- **Lỗi filter (nặng nhất, do chính lần rename tránh duplicate gây ra):** node đổi tên `scan_to_scan_filter_main` nhưng yaml giữ block `scan_to_scan_filter_chain:` → ROS 2 lờ params → chain rỗng → đuôi xe thành vật cản. Đã xác minh bằng source `laser_filters` (`filter_chain_.configure("", ...)` đọc `filter1...` trực tiếp). Fix: block `/**:` wildcard. Verify: `ros2 param list /scan_to_scan_filter_main | grep filter1`.
+- **Dual-parent TF:** revert hướng đảo alias — đã xóa alias, khôi phục `static_tf_laser` của mình. Mỗi frame 1 cha: `laser` (driver) + `laser_frame` (mình).
+- **AMCL pose mặc định:** `(0,0)` ngoài map → đặt default `(11.165, -8.485)` trong `amcl_config.yaml` (giữ `set_initial_pose: true`, RViz vẫn override được).
+- **Bác bỏ:** bật `vyaw` bánh xe cho EKF — giữ `false` (tránh trượt lốp nhiễm yaw, đúng chuẩn diff-drive). Chỉ xem lại nếu yaw trôi khi đứng yên.
+- **File sửa (đã commit & push):** `config/angular_filter.yaml`, `launch/robot.launch.py`, `config/amcl_config.yaml` (commit `0423e31`).
+- **Bước tiếp theo:** commit/push → Jetson pull/build/relaunch → verify filter1 + đặt goal tự hành end-to-end.
+
 #### [2026-09-09 11:30] - OpenCode (Muse Spark) — Debug bringup Nav2 full: MPPI SIGILL→DWB, plugin `/` vs `::`, EKF đói CPU, discovery mù
 - **P0 MPPI SIGILL (đã vượt qua):** `controller_server` chết exit -4. GDB backtrace: lệnh `ldaddal` (ARMv8.1-LSE) trong `MPPIController::configure()` của lib apt 1.1.18 (cả 1.1.20 cũng dính 117 LSE) — TX2 ARMv8.0 không chạy được. Fix: `config/nav2/controller.yaml` chuyển `FollowPath` sang `dwb_core::DWBLocalPlanner` (DWB + critics sạch LSE, đã configure đủ 7 critics). MPPI muốn dùng lại phải build source trên TX2 (quy trình đã ghi trong chat).
 - **Tên plugin `/` vs `::` (đã sửa):** `planner_server` FATAL vì `nav2_theta_star_planner::ThetaStarPlanner` không tồn tại (tên đúng `nav2_theta_star_planner/ThetaStarPlanner`); `behavior_server` FATAL tương tự với 4 behaviors (`nav2_behaviors/Spin|BackUp|DriveOnHeading|Wait`). Cả hai làm lifecycle abort bringup → bt_navigator không active → click goal bị ngó lơ. Đã sửa `planner_server.yaml`, `recovery.yaml`.

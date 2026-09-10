@@ -204,7 +204,19 @@
 * **Hiện tượng:** ROS cảnh báo nodes share an exact name; 2 `scan_to_scan_filter_chain` lọc trùng việc.
 * **Tác hại:** Nhầm lẫn topic, phí CPU, khó debug.
 * **Nguyên nhân:** `ole2dv2_launch.py` của driver ngoài tự kèm 1 filter (config của package khác), cộng filter của `robot.launch.py`.
-* **Cách xử lý:** Đổi tên filter bên mình thành `scan_to_scan_filter_main` (đã làm). Về lâu dài: vô hiệu filter thừa bên driver ngoài hoặc gộp về 1 tầng duy nhất.
+* **Cách xử lý:** Đổi tên filter bên mình thành `scan_to_scan_filter_main` + block yaml dùng wildcard `/**:` (xem Lỗi 21 — bắt buộc đi kèm, nếu không filter rỗng).
+
+### 🚨 Lỗi 21: Đổi tên node làm filter chain rỗng (đuôi xe thành vật cản)
+* **Hiện tượng:** Costmap đỏ đặc sau lưng xe, planner không lập đường được dù LiDAR quét tốt.
+* **Tác hại:** Xe mù hướng sau, tự hành liệt.
+* **Nguyên nhân:** `scan_to_scan_filter_chain` đọc `filter1`, `filter2`... trực tiếp từ params của chính nó (`filter_chain_.configure("", ...)` trong source `laser_filters`). Đổi tên node mà giữ block yaml cũ → ROS 2 lờ cả block → chain rỗng → scan đi qua không lọc.
+* **Cách xử lý:** Dùng block wildcard `/**:` trong file yaml filter để mọi tên node đều nhận params. Verify sau deploy: `ros2 param list /scan_to_scan_filter_main | grep filter1` phải hiện đủ `name/type/params`. **Quy tắc:** đổi tên node xong luôn kiểm tra params vào đủ không.
+
+### 🚨 Lỗi 22: Hai cha TF cho một frame (dual-parent flap)
+* **Hiện tượng:** TF `laser` nhấp nháy giữa 2 bộ số, AMCL/costmap drop scan + lỗi extrapolation.
+* **Tác hại:** Định vị chập chờn dù từng TF riêng lẻ đều đúng.
+* **Nguyên nhân:** Driver ngoài phát `base_link → laser`, launch mình phát thêm nhánh `... → laser` thứ hai (alias). TF2 cho ghi đè lẫn nhau.
+* **Cách xử lý:** Mỗi frame chỉ 1 cha duy nhất — giữ TF driver cho `laser`, TF mình cho `laser_frame`, không alias nối giữa chúng.
 
 ---
 
